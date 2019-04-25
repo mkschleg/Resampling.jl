@@ -30,7 +30,7 @@ include("GVF.jl")
 export Tabular
 include("CustomLayers.jl")
 
-export BatchTD, VTrace, update!
+export BatchTD, WISBatchTD, VTrace, BatchSarsa, BatchExpectedSarsa, update!
 include("Learning.jl")
 
 
