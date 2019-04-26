@@ -155,9 +155,9 @@ function main_experiment(args::Vector{String})
                         update!(value_dict[key][α_idx], opt, algo_dict[key], arg_er...;)
                     elseif sample_dict[key] == "Optimal"
                         samp_opt = ER.buffer
-                        arg_er = (samp_opt[:ρ], samp_opt[:s_t], samp_opt[:s_tp1],
+                        arg_opt = (samp_opt[:ρ], samp_opt[:s_t], samp_opt[:s_tp1],
                                   samp_opt[:r], samp_opt[:γ_tp1], samp_opt[:terminal])
-                        update!(value_dict[key][α_idx], opt, algo_dict[key], arg_er...;)
+                        update!(value_dict[key][α_idx], opt, algo_dict[key], arg_opt...;)
                     end
                     local_error_dict[key][α_idx, iter] = rmse(value_dict[key][α_idx], truth, π)
                 end
