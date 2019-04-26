@@ -40,6 +40,8 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
         help = "Size of batch"
         default = 16
         arg_type = Int64
+        "--onpolicy"
+        action=:store_true
         "--working"
         action=:store_true
     end
@@ -86,6 +88,10 @@ function main_experiment(args::Vector{String})
     α_arr = parsed["alphas"]
 
     μ, π = get_policies(parsed)
+    if parsed["onpolicy"]
+        μ = π
+    end
+
     truth = Resampling.DynamicProgramming(MarkovChain(chain_size), π, 0.9)
     println(truth)
 
@@ -145,7 +151,12 @@ function main_experiment(args::Vector{String})
                             corr_term = avg_is
                         end
                         update!(value_dict[key][α_idx], opt, algo_dict[key], arg_wer...; corr_term=corr_term)
-                    else sample_dict[key] == "ER"
+                    elseif sample_dict[key] == "ER"
+                        update!(value_dict[key][α_idx], opt, algo_dict[key], arg_er...;)
+                    elseif sample_dict[key] == "Optimal"
+                        samp_opt = ER.buffer
+                        arg_er = (samp_opt[:ρ], samp_opt[:s_t], samp_opt[:s_tp1],
+                                  samp_opt[:r], samp_opt[:γ_tp1], samp_opt[:terminal])
                         update!(value_dict[key][α_idx], opt, algo_dict[key], arg_er...;)
                     end
                     local_error_dict[key][α_idx, iter] = rmse(value_dict[key][α_idx], truth, π)
@@ -162,25 +173,9 @@ function main_experiment(args::Vector{String})
 
     # println(value_function)
 
-    
-
     if parsed["working"]
         return error_dict
     else
-        # # Save or something...
-        # results = Dict{String, Dict{String, Array{Float64}}}()
-        # results["median"] = Dict{String, Array{Float64}}()
-        # results["min"] = Dict{String, Array{Float64}}()
-        # results["max"] = Dict{String, Array{Float64}}()
-        # results["mean"] = Dict{String, Array{Float64}}()
-        # results["std"] = Dict{String, Array{Float64}}()
-
-        # for key in keys(error_dict)
-        #     results["median"][key] = meadian(mean(err[key];dims=3)[:,:,1];dims=1)
-        #     resulst["min"][key] = minimum(mean(err[key];dims=3)[:,:,1]; dims=1)
-        #     resulst["max"][key] = maximum(mean(err[key];dims=3)[:,:,1]; dims=1)
-
-        # end
         results = error_dict
         @save joinpath(save_loc, "results.jld2") results
     end
