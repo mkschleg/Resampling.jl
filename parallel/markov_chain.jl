@@ -45,7 +45,7 @@ function main()
                 "--ir", "--bcir",
                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0",
                 "--sarsa", "--expectedsarsa",
-                "--wisbatch", "--wisbuffer"]
+                "--wisbatch", "--wisbuffer", "--wisoptimal"]
     static_args = [alg_list; ["--exp_loc", parsed["saveloc"], "--numruns", string(parsed["numruns"]), "--numiter", "1000", "--alphas"] ;string.(alphas)]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
