@@ -26,7 +26,7 @@ function main()
         default=1
         "--numruns"
         arg_type=Int64
-        default=200000
+        default=100
         "--saveloc"
         arg_type=String
         default=save_loc

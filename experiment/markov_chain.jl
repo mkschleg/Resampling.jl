@@ -162,17 +162,26 @@ function main_experiment(args::Vector{String})
 
     # println(value_function)
 
-    results = Dict{String, Dict{String, Float64}}()
-    results["mode"] = Dict{String, Float64}()
-    results["min"] = Dict{String, Float64}()
-    results["max"] = Dict{String, Float64}()
-    results["mean"] = Dict{String, Float64}()
-    results["std"] = Dict{String, Float64}()
+    
 
     if parsed["working"]
         return error_dict
     else
-        # Save or something...
+        # # Save or something...
+        # results = Dict{String, Dict{String, Array{Float64}}}()
+        # results["median"] = Dict{String, Array{Float64}}()
+        # results["min"] = Dict{String, Array{Float64}}()
+        # results["max"] = Dict{String, Array{Float64}}()
+        # results["mean"] = Dict{String, Array{Float64}}()
+        # results["std"] = Dict{String, Array{Float64}}()
+
+        # for key in keys(error_dict)
+        #     results["median"][key] = meadian(mean(err[key];dims=3)[:,:,1];dims=1)
+        #     resulst["min"][key] = minimum(mean(err[key];dims=3)[:,:,1]; dims=1)
+        #     resulst["max"][key] = maximum(mean(err[key];dims=3)[:,:,1]; dims=1)
+
+        # end
+        results = error_dict
         @save joinpath(save_loc, "results.jld2") results
     end
 
