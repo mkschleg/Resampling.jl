@@ -9,6 +9,8 @@ function call(apf::AbstractParameterFunction, state_t, action_t, state_tp1, acti
     Base.get(apf::AbstractParameterFunction, state_t, action_t, state_tp1, action_tp1, preds_tilde)
 end
 
+
+
 """
 Cumulants
 """
@@ -78,6 +80,9 @@ function Base.get(π::AbstractPolicy, state_t, action_t, state_tp1, action_tp1, 
     throw(DomainError("Base.get(PolicyType, args...) not defined!"))
 end
 
+StatsBase.sample(rng::Random.AbstractRNG, π::AbstractPolicy, state) = nothing
+StatsBase.sample(π::AbstractPolicy, state) = StatsBase.sample(Random.GLOBAL_RNG, π, state)
+
 struct NullPolicy <: AbstractPolicy
 end
 Base.get(π::NullPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) = 1.0
@@ -100,8 +105,14 @@ FavoredRandomPolicy(num_actions::Integer, favored_action::Integer, favored_prob:
 
 Base.get(π::RandomPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) = π.probabilities[action_t]
 
-StatsBase.sample(π::RandomPolicy) = StatsBase.sample(Random.GLOBAL_RNG, π)
-StatsBase.sample(rng::Random.AbstractRNG, π::RandomPolicy) = StatsBase.sample(rng, π.weight_vec, 1:length(π.weight_vec))
+StatsBase.sample(rng::Random.AbstractRNG, π::RandomPolicy, state=nothing) = StatsBase.sample(rng, 1:length(π.weight_vec), π.weight_vec)
+
+struct FunctionalPolicy{F} <: AbstractPolicy
+    func::F
+end
+
+Base.get(π::FunctionalPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) =
+    π.func(state_t, action_t, state_tp1, action_tp1, preds_tp1)
 
 abstract type AbstractGVF end
 

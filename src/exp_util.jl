@@ -1,12 +1,13 @@
 module ExpUtils
 
+import ..JuliaRL
 using ..Resampling
 using Reproduce
 
 
-export algorithm_settings!, build_algorithm_dict, MarkovChainUtil
+export algorithm_settings!, build_algorithm_dict
 
-include("exp_utils/MarkovChain.jl")
+
 function algorithm_settings!(s::ArgParseSettings)
     @add_arg_table s begin
         # Algorithms
@@ -111,5 +112,11 @@ function build_algorithm_dict(parsed; max_is=1.0)
     end
     return algo_dict, sample_dict, value_type_dict
 end
+
+export MarkovChainUtil
+include("exp_utils/MarkovChain.jl")
+
+export FourRoomsUtil
+include("exp_utils/FourRooms.jl")
 
 end

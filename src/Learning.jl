@@ -6,8 +6,8 @@ using Flux
 import LinearAlgebra: dot
 import Statistics: mean
 
-tderror(v_t, c, γ_tp1, ṽ_tp1) =
-    (v_t .- (c .+ γ_tp1.*ṽ_tp1))
+tderror(v_t, c, γ_tp1, ṽ_tp1) = v_t .- (c .+ γ_tp1.*ṽ_tp1)
+
 
 function offpolicy_tdloss(ρ_t::Array{T, 1}, v_t::TrackedArray, c::Array{T, 1}, γ_tp1::Array{T, 1}, ṽ_tp1::Array{T, 1}) where {T<:AbstractFloat}
     target = T.(c .+ γ_tp1.*ṽ_tp1)
@@ -65,6 +65,7 @@ mutable struct BatchTD <: LearningUpdate end
 function update!(model, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
     preds_t = model.(s_t)
     preds_tp1 = model.(s_tp1)
+    
     grads = Flux.gradient(()->offpolicy_tdloss(preds, r, γ, Flux.data.(preds_tp1)), params(model))
     for weights in params(model)
         update!(opt, weights, -grads[weights])
@@ -86,7 +87,7 @@ function update!(model::TabularLayer, opt::Descent, lu::BatchTD, ρ, s_t, s_tp1,
     δ = ρ.*tderror(v_t, r, γ, v_tp1)
     Δ = corr_term.*δ.*(1.0/length(v_t))
     for (s_idx, s) in enumerate(s_t)
-        model.W[s] -= opt.eta*Δ[s_idx]
+        model.W[s...] -= opt.eta*Δ[s_idx]
     end
 end
 
@@ -140,17 +141,17 @@ function update!(model::SingleLayer, opt, lu::BatchSarsa, ρ, s_t, s_tp1, r, γ,
     model.W .+= -apply!(opt, model.W, corr_term*Δ)
 end
 
-function update!(model::TabularLayer, opt::Descent, lu::BatchSarsa, ρ, s_t, s_tp1, r, γ, terminal, a_t, a_tp1, target_policy; corr_term=1.0)
-    q_t = [model(CartesianIndex(act, s_t[idx]...)) for (idx, act) in enumerate(a_t)]
+function update!(model::TabularLayer, opt::Descent, lu::BatchSarsa, ρ, s_t::Array{Array{Int64, 1}, 1}, s_tp1::Array{Array{Int64, 1}, 1}, r, γ, terminal, a_t, a_tp1, target_policy; corr_term=1.0)
+
+    cis_t = [CartesianIndex(act, s_t[idx]...) for (idx, act) in enumerate(a_t)]
+    q_t = model.(cis_t)
     q_tp1 = [model(CartesianIndex(act, s_tp1[idx]...)) for (idx, act) in enumerate(a_tp1)]
     δ = tderror(q_t, r, γ, q_tp1)
     Δ = corr_term.*δ.*(1.0/length(q_t))
-    for (s_idx, s) in enumerate(s_t)
-        model[a_t[s_idx], s...] -= opt.eta*Δ[s_idx]
+    for (ci_idx, ci) in enumerate(cis_t)
+        model[ci] -= opt.eta*Δ[ci_idx]
     end
 end
-
-
 
 mutable struct BatchExpectedSarsa <: LearningUpdate end
 
@@ -172,7 +173,7 @@ function update!(model::SingleLayer, opt, lu::BatchExpectedSarsa, ρ, s_t, s_tp1
     model.W .+= -apply!(opt, model.W, corr_term*Δ)
 end
 
-function update!(model::TabularLayer, opt::Descent, lu::BatchExpectedSarsa, ρ, s_t, s_tp1, r, γ, terminal, a_t, a_tp1, target_policy; corr_term=1.0)
+function update!(model::TabularLayer, opt::Descent, lu::BatchExpectedSarsa, ρ, s_t::Array{Array{Int64, 1}, 1}, s_tp1::Array{Array{Int64, 1}, 1}, r, γ, terminal, a_t, a_tp1, target_policy::Array{Float64, 1}; corr_term=1.0)
     q_t = [model(CartesianIndex(act, s_t[idx]...)) for (idx, act) in enumerate(a_t)]
     exp_q = [dot(target_policy, (model[:, s...])) for s in s_tp1]
     δ = tderror(q_t, r, γ, exp_q)
@@ -181,5 +182,18 @@ function update!(model::TabularLayer, opt::Descent, lu::BatchExpectedSarsa, ρ, 
         model[a_t[s_idx], s...] -= opt.eta*Δ[s_idx]
     end
 end
+
+function update!(model::TabularLayer, opt::Descent, lu::BatchExpectedSarsa, ρ, s_t::Array{Array{Int64, 1}, 1}, s_tp1::Array{Array{Int64, 1}, 1}, r, γ, terminal, a_t, a_tp1, target_policy::P; corr_term=1.0) where {P<:AbstractPolicy}
+    q_t = [model(CartesianIndex(act, s_t[idx]...)) for (idx, act) in enumerate(a_t)]
+    # println([get(target_policy, s, a, nothing, nothing, nothing) for a in 1:size(model.W)[1]])
+    exp_q = [dot([get(target_policy, s, a, nothing, nothing, nothing) for a in 1:size(model.W)[1]], (model[:, s...])) for s in s_tp1]
+    δ = tderror(q_t, r, γ, exp_q)
+    Δ = corr_term.*δ.*(1.0/length(q_t))
+    for (s_idx, s) in enumerate(s_t)
+        model[a_t[s_idx], s...] -= opt.eta*Δ[s_idx]
+    end
+end
+
+
 
 

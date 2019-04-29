@@ -123,7 +123,8 @@ function JuliaRL.environment_step!(env::FourRooms, action; rng=Random.GLOBAL_RNG
         next_state = env.state
     end
 
-    return next_state, 0, false
+    env.state = next_state
+    # return next_state, 0, false
 end
 
 function _step(env::FourRooms, state, action; rng=Random.GLOBAL_RNG, kwargs...)

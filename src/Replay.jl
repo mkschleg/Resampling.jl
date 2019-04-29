@@ -63,6 +63,7 @@ end
 
 size(er::WeightedExperienceReplay) = size(er.buffer)
 getindex(er::WeightedExperienceReplay, idx) = getindex(er.buffer, idx)
+total(er::WeightedExperienceReplay) = total(er.sumtree)
 add!(er::WeightedExperienceReplay, experience, args...) = add!(er, experience, args[1])
 function add!(er::WeightedExperienceReplay, experience, weight, args...)
     idx = add!(er.buffer, experience)
@@ -74,6 +75,8 @@ function sample(er::WeightedExperienceReplay, batch_size; rng=Random.GLOBAL_RNG)
     batch_idx, batch_priorities, idx = sample(er.sumtree, batch_size; rng=rng)
     return getrow(er.buffer, idx)
 end
+
+
 
 
 

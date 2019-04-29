@@ -47,7 +47,7 @@ end
 function add!(buffer::CircularBuffer, data)
     ret = buffer._current_row
     for (idx, dat) in enumerate(data)
-        buffer._data_frame[buffer._current_row, idx] = dat
+        buffer._data_frame[buffer._current_row, idx] = copy(dat)
     end
     buffer._current_row += 1
     if buffer._current_row > buffer._capacity

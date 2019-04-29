@@ -31,8 +31,9 @@ Tabular(dims::Integer...) = TabularLayer(zeros(dims...))
 
 @forward TabularLayer.W Base.getindex, Base.setindex!
 
-(layer::TabularLayer)(x) = layer[x]
 
+(layer::TabularLayer)(x) = layer[x]
+(layer::TabularLayer)(x::Array{T, 1}) where {T<:Integer} = layer[x...]
 
 mutable struct SparseLayer{F, FP, A}
     σ::F
