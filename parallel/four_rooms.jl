@@ -10,10 +10,10 @@ const exp_file = "experiment/four_rooms.jl"
 const exp_module_name = :FourRoomsExperiment
 const exp_func_name = :main_experiment
 const alphas = collect(0.0:0.05:1.0)
-const policies = ["uniform", "random_state_variant", "favor_down"]
+const policies = ["random_state_variant", "favor_down"]
 const gvfs = ["down", "favored_down"]
 const batchsizes = [1, 8, 16, 32]
-const train_gaps = [1,2,3,4,6,8,16,24,32,64]
+const train_gaps = [1, 2, 3, 4, 6, 8, 16, 24, 32, 64]
 const warm_up = 1000
 const buffersize = 15000
 const numsteps = 250000
@@ -45,9 +45,8 @@ function main()
     end
     parsed = parse_args(as)
     num_workers = parsed["numworkers"]
-    
+
     arg_dict = Dict([
-        # "outhorde"=>["onestep", "chain"],
         "policy"=>policies,
         "gvf"=>gvfs,
         "train_gap"=>train_gaps,
@@ -66,6 +65,7 @@ function main()
                     "--buffersize", string(buffersize),
                     "--seed", "0",
                     "--numinter", string(numsteps),
+                    "--compress",
                     "--alphas"]; string.(alphas)]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
@@ -75,7 +75,6 @@ function main()
         exit(0)
     end
 
-    # experiment = Experiment(save_loc)
     experiment = Experiment(save_loc,
                             exp_file,
                             exp_module_name,

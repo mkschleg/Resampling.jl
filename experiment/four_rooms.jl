@@ -69,6 +69,8 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
         arg_type = Int64
         "--working"
         action=:store_true
+        "--compress"
+        action=:store_true
     end
 
     @add_arg_table as begin
@@ -107,28 +109,18 @@ function main_experiment(args::Vector{String})
     α_arr = parsed["alphas"].*batch_size
 
     μ = get_policy(parsed)
-    # gvf = GVF(FunctionalCumulant((state_t, action_t, state_tp1, action_tp1, preds_tp1)-> (state_tp1 == state_t ? 1.0 : 0.0)),
-    #           StateTerminationDiscount(0.9, (state_t, action_t, state_tp1)->(state_tp1 == state_t)),
-    #           FavoredRandomPolicy(4, 3, 0.9))
-
     gvf = FourRoomsUtil.GVFS[parsed["gvf"]]
 
     # get policy matrix over all states:
     env = FourRooms()
     target_policy_matrix = get_target_policy_matrix(env, gvf.policy)
-    # println(size(target_policy_matrix))
 
     truth = Resampling.DynamicProgramming(env, gvf)
-
-    println(truth)
-
-    
-    # (μ::P, gvf::GVF, α_arr, training_gap, buffer_size, batch_size, warm_up)
     agent = FourRoomsAgent(μ, gvf, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env))
 
     error_dict = Dict{String, Array{Float64}}()
     for key in keys(agent.algo_dict)
-        error_dict[key] = zeros(length(α_arr), num_interactions)
+        error_dict[key] = zeros(Float32, length(α_arr), num_interactions)
     end
 
     rng = MersenneTwister(parsed["seed"] + parsed["run"])
@@ -147,7 +139,7 @@ function main_experiment(args::Vector{String})
         # calculate error
         for key in keys(agent.algo_dict)
             for α_idx in eachindex(agent.α_arr)
-                error_dict[key][α_idx, step] = mase(agent.value_dict[key][α_idx], truth, target_policy_matrix)
+                error_dict[key][α_idx, step] = Float32(mase(agent.value_dict[key][α_idx], truth, target_policy_matrix))
             end
         end
     end
@@ -157,7 +149,14 @@ function main_experiment(args::Vector{String})
         return error_dict
     else
         results = error_dict
-        @save joinpath(save_loc, "results.jld2") error_dict
+        if parsed["compress"]
+            JLD2.save(
+                JLD2.FileIO.File(JLD2.FileIO.DataFormat{:JLD2},
+                                 joinpath(save_loc, "results.jld2")),
+                Dict("results"=>results); compress=true)
+        else
+            @save joinpath(save_loc, "results.jld2") error_dict
+        end
     end
 
 end
