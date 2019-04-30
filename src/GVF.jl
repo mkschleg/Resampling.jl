@@ -92,6 +92,7 @@ struct PersistentPolicy <: AbstractPolicy
 end
 
 Base.get(π::PersistentPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) = π.action == action_t ? 1.0 : 0.0
+StatsBase.sample(rng::Random.AbstractRNG, π::PersistentPolicy, state=nothing) = π.action
 
 struct RandomPolicy{T<:AbstractFloat} <: AbstractPolicy
     probabilities::Array{T,1}

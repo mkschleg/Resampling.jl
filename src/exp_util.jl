@@ -119,4 +119,8 @@ include("exp_utils/MarkovChain.jl")
 export FourRoomsUtil
 include("exp_utils/FourRooms.jl")
 
+export FourRoomsContUtil
+include("exp_utils/FourRoomsCont.jl")
+
+
 end

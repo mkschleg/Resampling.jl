@@ -81,6 +81,18 @@ function update!(model::SingleLayer, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, te
     model.W .+= -apply!(opt, model.W, corr_term*Δ)
 end
 
+function update!(model::SparseLayer, opt::Descent, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    v_t = model.(s_t)
+    v_tp1 = model.(s_tp1)
+    dvdt = [deriv(model, s) for s in s_t]
+    δ = ρ.*tderror(v_t, r, γ, v_tp1)
+    Δ = δ.*dvdt.*1//length(ρ)
+
+    for i in 1:length(ρ)
+        model.W[s_t[i]] .-= opt.eta*corr_term*Δ[i]
+    end
+end
+
 function update!(model::TabularLayer, opt::Descent, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
     v_t = model.(s_t)
     v_tp1 = model.(s_tp1)
