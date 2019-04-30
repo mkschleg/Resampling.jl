@@ -131,7 +131,7 @@ function main_experiment(args::Vector{String})
 
     # return eval_states, eval_rets
 
-    agent = TCFourRoomsContAgent(μ, gvf, 64, 2, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env))
+    agent = TCFourRoomsContAgent(μ, gvf, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env))
 
     error_dict = Dict{String, Array{Float64}}()
     for key in keys(agent.algo_dict)
@@ -144,8 +144,8 @@ function main_experiment(args::Vector{String})
 
     eval_step = 1
 
-    ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
-    # for step in 1:num_interactions
+    # ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
+    for step in 1:num_interactions
 
         # Get experience from environment.
         _, s_tp1, r, terminal = step!(env, action; rng=rng)
