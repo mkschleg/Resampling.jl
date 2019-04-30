@@ -67,7 +67,7 @@ num_actions(env::FourRooms) = 4
 get_states(env::FourRooms) = findall(x->x==false, env.walls)
 JuliaRL.get_actions(env::FourRooms) = FourRoomsParams.ACTIONS
 
-function which_room(state)
+function which_room(env::FourRooms, state)
     frp = FourRoomsParams
     room = -1
     if state[1] < 6
@@ -94,7 +94,7 @@ end
 
 function JuliaRL.reset!(env::FourRooms; rng=Random.GLOBAL_RNG, kwargs...)
     state = random_state(env, rng)
-    while !env.walls[state[1], state[2]]
+    while env.walls[state[1], state[2]]
         state = random_state(env, rng)
     end
     env.state = state
@@ -124,7 +124,6 @@ function JuliaRL.environment_step!(env::FourRooms, action; rng=Random.GLOBAL_RNG
     end
 
     env.state = next_state
-    # return next_state, 0, false
 end
 
 function _step(env::FourRooms, state, action; rng=Random.GLOBAL_RNG, kwargs...)

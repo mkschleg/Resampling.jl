@@ -41,8 +41,11 @@ mutable struct SparseLayer{F, FP, A}
     W::A
 end
 
-SparseLayer(num_weights::Integer, out::Integer, σ, σ′; init=(dims...)->zeros(Float32, dims...)) =
+SparseLayer(num_weights::Integer, out::Integer, σ=identity, σ′=identity′; init=(dims...)->zeros(Float32, dims...)) =
     SparseLayer(σ, σ′, init(out, num_weights))
+
+(layer::SparseLayer)(x::Array{Int64, 1}) = layer.σ.(sum(layer.W[x]))
+deriv(layer::SparseLayer, x::Array{Int64, 1}) = layer.σ′.(sum(layer.W[x]))
 
 (layer::SparseLayer)(x::Array{CartesianIndex{1}, 1}) = layer.σ.(sum(layer.W[x]))
 deriv(layer::SparseLayer, x::Array{CartesianIndex{1}, 1}) = layer.σ′.(sum(layer.W[x]))

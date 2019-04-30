@@ -1,22 +1,22 @@
-
 __precompile__(true)
 
-module FourRoomsExperiment
+module FourRoomsContExperiment
 
 using Reproduce
 using JLD2
 using Resampling
 import Resampling.ExpUtils: algorithm_settings!, build_algorithm_dict
-using Resampling.ExpUtils.FourRoomsUtil
+using Resampling.ExpUtils.FourRoomsContUtil
 # import JuliaRL
 using Random
 using Statistics
 import Flux: Descent
 import ProgressMeter
 import StatsBase
+using JuliaRL.FeatureCreators
 
-function mase(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, args...)
-    return mean(abs.(model.W .- truth))
+function mase(preds, truth, args...)
+    return mean(abs.(preds .- truth))
 end
 
 function mase(model::Resampling.TabularLayer{Array{Float64, 3}}, truth, target_policy_matrix)
@@ -33,7 +33,7 @@ function get_target_policy_matrix(env::FourRooms, μ::Resampling.AbstractPolicy)
 end
 
 
-function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reproduce.ArgParse.debug_handler))
+function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reproduce.ArgParse.debug_handler, exit_after_help=false))
     @add_arg_table as begin
         # Basic Experiment Arguments
         "--exp_loc"
@@ -67,6 +67,14 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
         help = "Size of batch"
         default = 16
         arg_type = Int64
+        "--eval_points"
+        help="Number of points to evaluate over"
+        default = 50
+        arg_type = Int64
+        "--eval_steps"
+        help="Number of points to evaluate over"
+        default = 1
+        arg_type = Int64
         "--working"
         action=:store_true
         "--compress"
@@ -91,6 +99,9 @@ function main_experiment(args::Vector{String})
 
     as = exp_settings()
     parsed = parse_args(args, as)
+    if parsed == nothing
+        return
+    end
     save_loc=""
     if !parsed["working"]
         create_info!(parsed, parsed["exp_loc"]; filter_keys=["verbose", "working", "exp_loc"])
@@ -106,44 +117,53 @@ function main_experiment(args::Vector{String})
     num_interactions = parsed["numinter"]
     buffer_size = parsed["buffersize"]
     batch_size = parsed["batchsize"]
-    α_arr = parsed["alphas"].*batch_size
+    α_arr = parsed["alphas"]
 
     μ = get_policy(parsed)
-    gvf = FourRoomsUtil.GVFS[parsed["gvf"]]
+    gvf = FourRoomsContUtil.GVFS[parsed["gvf"]]
 
-    # get policy matrix over all states:
-    env = FourRooms()
-    target_policy_matrix = get_target_policy_matrix(env, gvf.policy)
-
-    truth = Resampling.DynamicProgramming(env, gvf)
-    agent = FourRoomsAgent(μ, gvf, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env))
-
-    error_dict = Dict{String, Array{Float64}}()
-    for key in keys(agent.algo_dict)
-        error_dict[key] = zeros(Float32, length(α_arr), num_interactions)
-    end
 
     rng = MersenneTwister(parsed["seed"] + parsed["run"])
 
+    env = FourRoomsCont(parsed["noise_params"]...)
+    eval_states = [Resampling.random_start_state(env, rng) for i in 1:parsed["eval_points"]]
+    eval_rets = [mean(Resampling.MonteCarloReturn(env, gvf, start_state, 100; rng=rng)) for start_state in eval_states]
+
+    # return eval_states, eval_rets
+
+    agent = TCFourRoomsContAgent(μ, gvf, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env))
+
+    error_dict = Dict{String, Array{Float64}}()
+    for key in keys(agent.algo_dict)
+        error_dict[key] = zeros(Float32, length(α_arr), Int64(floor(num_interactions/parsed["eval_steps"])))
+    end
+
     _, s_t = start!(env; rng=rng)
     action = start!(agent, s_t; rng=rng)
+    predict_dict = Dict{String, Array{Array{Float64, 1}}}()
+
+    eval_step = 1
 
     # ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
     for step in 1:num_interactions
 
         # Get experience from environment.
         _, s_tp1, r, terminal = step!(env, action; rng=rng)
-        # println(s_tp1, action)
         action = step!(agent, s_tp1, r, terminal; rng=rng)
 
         # calculate error
-        for key in keys(agent.algo_dict)
-            for α_idx in eachindex(agent.α_arr)
-                error_dict[key][α_idx, step] = Float32(mase{Float32}(agent.value_dict[key][α_idx], truth, target_policy_matrix))
+        if (step-1)%parsed["eval_steps"] == 0
+            predict!(agent, eval_states, predict_dict)
+            for key in keys(agent.algo_dict)
+                for α_idx in eachindex(agent.α_arr)
+                    error_dict[key][α_idx, eval_step] = Float32(mase(predict_dict[key][α_idx], eval_rets))
+                    # error_dict[key][α_idx, step] = Float32(mase(agent.value_dict[key][α_idx].([create_features(agent.tilecoder, s) for s in eval_states]), eval_rets))
+                end
             end
+            eval_step += 1
         end
     end
-    # println(value_function)
+    # # println(value_function)
 
     if parsed["working"]
         return error_dict

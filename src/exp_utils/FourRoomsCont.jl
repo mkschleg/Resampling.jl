@@ -1,0 +1,68 @@
+module FourRoomsContUtil
+
+using ..Resampling
+import ..Resampling.FourRoomsParams
+import ..Resampling: AbstractPolicy
+using ..Reproduce
+import StatsBase
+import StatsBase: Weights
+using Random
+import ..JuliaRL
+import ..build_algorithm_dict
+
+include("FourRoomsCont/policies.jl")
+
+export TCFourRoomsContAgent, predict, predict!
+
+include("FourRoomsCont/agent.jl")
+
+export
+    env_settings!,
+    get_experience,
+    policy_settings,
+    max_is_dict,
+    get_policy
+
+const constructed_policy_settings = Dict(
+    "uniform"=>UniformRandomPolicy(4),
+    "corners"=>FourCornersVariant(),
+    "favor_down"=>FavoredRandomPolicy(4, FourRoomsParams.DOWN, 0.1),
+    "random_state_variant"=>RandomStateVariant()
+)
+
+const GVFS = Dict(
+    "collide_down"=>GVF(FunctionalCumulant((state_t, action_t, state_tp1, action_tp1, preds_tp1)-> (state_tp1[2] ? 1.0 : 0.0)),
+                StateTerminationDiscount(0.9, (state_t, action_t, state_tp1)->(state_tp1[2])),
+                PersistentPolicy(3)),
+    "favored_down"=>GVF(FunctionalCumulant((state_t, action_t, state_tp1, action_tp1, preds_tp1)-> (state_tp1[2] ? 1.0 : 0.0)),
+                        StateTerminationDiscount(0.9, (state_t, action_t, state_tp1)->(state_tp1[2])),
+                        FavoredRandomPolicy(4, 3, 0.9))
+)
+
+
+function env_settings!(s::ArgParseSettings)
+    @add_arg_table s begin
+        "--policy"
+        help = "The policy settings: $(keys(constructed_policy_settings))"
+        range_tester=(p)->(p ∈ keys(constructed_policy_settings))
+        required=true
+        "--gvf"
+        help = "The gvf to learn: $(keys(GVFS))"
+        range_tester=(gvf)->(gvf ∈ keys(GVFS))
+        required=true
+        "--noise_params"
+        help = "Noise parameters for the four rooms environment"
+        arg_type=Float64
+        nargs='+'
+        default=[0.0, 0.0]
+    end
+end
+
+function get_policy(parsed::Dict)
+    return constructed_policy_settings[parsed["policy"]]
+end
+
+
+
+end
+
