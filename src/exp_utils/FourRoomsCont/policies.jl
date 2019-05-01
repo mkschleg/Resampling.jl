@@ -93,13 +93,22 @@ function Base.get(π::RandomStateVariant, state_t::Array{Float64, 1}, action_t, 
     return prob
 end
 
+function StatsBase.sample(rng::Random.AbstractRNG, π::RandomStateVariant, state::Array{Float64, 1})
+    act = -1
+    if Int64.(floor.(state) .+ 1) ∈ π.states
+        act = StatsBase.sample(rng, 1:4, π.weights)
+    else
+        act = rand(rng, 1:4)
+    end
+    return act
+end
 
 struct RandomStateWeightVariant <: AbstractPolicy
     states::Array{Array{Int64, 1}, 1}
     weights::Dict{Array{Int64, 1}, Weights}
 end
 
-function random_weight_vector(rng, num_actions)
+function random_weight_vector(rng::Random.AbstractRNG, num_actions)
     favored_action = rand(rng, 1:num_actions)
     prob = 0.5*(rand(rng) + 1.0)
     [act == favored_action ? prob : (1.0-prob)/(num_actions-1) for act in 1:num_actions]

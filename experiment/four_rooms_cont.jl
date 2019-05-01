@@ -120,6 +120,7 @@ function main_experiment(args::Vector{String})
     α_arr = parsed["alphas"]
 
     μ = get_policy(parsed)
+    println(μ)
     gvf = FourRoomsContUtil.GVFS[parsed["gvf"]]
 
 
@@ -127,7 +128,7 @@ function main_experiment(args::Vector{String})
 
     env = FourRoomsCont(0.1, 0.001)
     # eval_states = [Resampling.random_start_state(env, rng) for i in 1:parsed["eval_points"]]
-    eval_states = sample_according_to_dmu(env, parsed["policy"], parsed["eval_points"]; rng=rng)
+    eval_states = FourRoomsContUtil.sample_according_to_dmu(env, parsed["policy"], parsed["eval_points"]; rng=rng)
     eval_rets = [mean(Resampling.MonteCarloReturn(env, gvf, start_state, 100; rng=rng)) for start_state in eval_states]
 
     agent = TCFourRoomsContAgent(μ, gvf, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env))
