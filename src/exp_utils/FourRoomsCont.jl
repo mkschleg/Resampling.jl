@@ -12,9 +12,12 @@ import ..build_algorithm_dict
 
 include("FourRoomsCont/policies.jl")
 
-export TCFourRoomsContAgent, predict, predict!
+export
+    TCFourRoomsContAgent, NNFourRoomsContAgent,
+    predict, predict!
 
 include("FourRoomsCont/agent.jl")
+include("FourRoomsCont/nn_agent.jl")
 
 include("FourRoomsCont/dmu.jl")
 
@@ -53,11 +56,11 @@ function env_settings!(s::ArgParseSettings)
         help = "The gvf to learn: $(keys(GVFS))"
         range_tester=(gvf)->(gvf ∈ keys(GVFS))
         required=true
-        "--noise_params"
-        help = "Noise parameters for the four rooms environment"
-        arg_type=Float64
-        nargs='+'
-        default=[0.0, 0.0]
+        # "--noise_params"
+        # help = "Noise parameters for the four rooms environment"
+        # arg_type=Float64
+        # nargs='+'
+        # default=[0.0, 0.0]
     end
 end
 

@@ -6,12 +6,21 @@ using Flux
 import LinearAlgebra: dot
 import Statistics: mean
 
+
+_square(x::AbstractArray) = x.*x
+_prod(x::Array{T, 1}, y::Array{T, 1}) where {T<:Number} = x.*y
+_prod(x::Array{T, 1}, y::AbstractArray) where {T<:Number} = x.*y
+
 tderror(v_t, c, γ_tp1, ṽ_tp1) = v_t .- (c .+ γ_tp1.*ṽ_tp1)
 
-
-function offpolicy_tdloss(ρ_t::Array{T, 1}, v_t::TrackedArray, c::Array{T, 1}, γ_tp1::Array{T, 1}, ṽ_tp1::Array{T, 1}) where {T<:AbstractFloat}
-    target = T.(c .+ γ_tp1.*ṽ_tp1)
-    return (T(0.5))*sum(ρ_t.*((v_t .- target).^2)) * (1//length(ρ_t))
+function offpolicy_tdloss(ρ_t::Array{Array{T, 1}, 1},
+                          v_t::AbstractArray,
+                          c::Array{Array{T, 1}, 1},
+                          γ_tp1::Array{Array{T,1}, 1},
+                          ṽ_tp1::Array{Array{T,1}, 1}) where {T<:AbstractFloat}
+    target = c .+ _prod.(γ_tp1, ṽ_tp1)
+    error = _square.(v_t .- target)
+    return (T(0.5))*sum(mean.(_prod.(ρ_t, error))) * (1//length(ρ_t))
 end
 
 tdloss(v_t, c, γ_tp1, ṽ_tp1) =
@@ -63,12 +72,12 @@ update!(model, opt, lu::LearningUpdate, ρ, s_t, s_tp1, r, γ, terminal, a_t, a_
 mutable struct BatchTD <: LearningUpdate end
 
 function update!(model, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
-    preds_t = model.(s_t)
-    preds_tp1 = model.(s_tp1)
-    
-    grads = Flux.gradient(()->offpolicy_tdloss(preds, r, γ, Flux.data.(preds_tp1)), params(model))
+    v_t = model.(s_t)
+    v_tp1 = model.(s_tp1)
+    loss = offpolicy_tdloss(ρ, v_t, r, γ, Flux.data.(v_tp1))
+    grads = Flux.gradient(()->loss, params(model))
     for weights in params(model)
-        update!(opt, weights, -grads[weights])
+        Flux.Optimise.update!(opt, weights, grads[weights])
     end
 end
 

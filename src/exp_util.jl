@@ -1,3 +1,7 @@
+
+
+
+
 module ExpUtils
 
 import ..JuliaRL
@@ -121,6 +125,9 @@ include("exp_utils/FourRooms.jl")
 
 export FourRoomsContUtil
 include("exp_utils/FourRoomsCont.jl")
+
+export FluxUtil
+include("exp_utils/Flux.jl")
 
 
 end
