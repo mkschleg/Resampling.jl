@@ -1,3 +1,8 @@
+
+glorot_uniform(rng::Random.AbstractRNG, dims...) = begin; (rand(rng, Float32, dims...) .- 0.5f0) .* sqrt(24.0f0/sum(dims)) end;
+glorot_normal(rng::Random.AbstractRNG, dims...) = randn(rng, Float32, dims...) .* sqrt(2.0f0/sum(dims))
+
+
 module ExpUtils
 
 import ..JuliaRL
@@ -121,6 +126,9 @@ include("exp_utils/FourRooms.jl")
 
 export FourRoomsContUtil
 include("exp_utils/FourRoomsCont.jl")
+
+export FluxUtil
+include("exp_utils/Flux.jl")
 
 
 end
