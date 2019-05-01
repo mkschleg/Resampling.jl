@@ -120,7 +120,6 @@ function main_experiment(args::Vector{String})
     α_arr = parsed["alphas"]
 
     μ = get_policy(parsed)
-    println(μ)
     gvf = FourRoomsContUtil.GVFS[parsed["gvf"]]
 
 
