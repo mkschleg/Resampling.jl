@@ -63,7 +63,6 @@ function main()
                     "--seed", "0",
                     "--buffersize", string(buffersize),
                     "--numinter", string(numsteps),
-                    "--"
                     "--eval_points", "100",
                     "--eval_steps", "100",
                     "--opt", "Descent",

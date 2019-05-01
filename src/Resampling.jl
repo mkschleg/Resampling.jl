@@ -3,10 +3,6 @@ module Resampling
 import JuliaRL
 import Base.get
 
-glorot_uniform(rng::Random.AbstractRNG, dims...) = begin; (rand(rng, Float32, dims...) .- 0.5f0) .* sqrt(24.0f0/sum(dims)) end;
-glorot_normal(rng::Random.AbstractRNG, dims...) = randn(rng, Float32, dims...) .* sqrt(2.0f0/sum(dims))
-
-
 export
     AbstractExperienceReplay,
     ExperienceReplay,
