@@ -39,9 +39,9 @@ mutable struct TCFourRoomsContAgent{P<:Resampling.AbstractPolicy} <: JuliaRL.Abs
                 value_dict[key] = [SparseLayer(num_features, 4) for α in α_arr]
             end
         end
-        er_names = [:s_t, :s_tp1, :a_t, :r, :γ_tp1, :terminal, :mu_t, :pi_t, :ρ]
+        er_names = [:s_t, :s_tp1, :a_t, :a_tp1, :r, :γ_tp1, :terminal, :mu_t, :pi_t, :ρ]
         state_type = Array{Int64, 1}
-        er_types = [state_type, state_type, Int64, Float64, Float64, Bool, Float64, Float64, Float64]
+        er_types = [state_type, state_type, Int64, Int64, Float64, Float64, Bool, Float64, Float64, Float64]
         ER = ExperienceReplay(buffer_size, er_types; column_names=er_names)
         WER = WeightedExperienceReplay(buffer_size, er_types; column_names=er_names)
         new{P}(μ, ER, WER, tilecoder, gvf, training_gap, buffer_size, batch_size, warm_up,
@@ -64,10 +64,11 @@ function JuliaRL.step!(agent::TCFourRoomsContAgent, env_s_tp1, r, terminal; rng=
     # After taking action at timestep t
     μ_prob = get(agent.μ, agent.state_t[1], agent.action_t, nothing, nothing, nothing)
     c, γ, π_prob = get(agent.gvf, agent.state_t, agent.action_t, env_s_tp1, nothing, nothing)
+    action_tp1 = JuliaRL.get_action(agent, agent.state_t; rng=rng)
 
     experience = (create_features(agent.tilecoder, agent.state_t[1]./11.0),
                   create_features(agent.tilecoder, env_s_tp1[1]./11.0),
-                  agent.action_t, c, γ, terminal, μ_prob, π_prob, π_prob/μ_prob)
+                  agent.action_t, action_tp1, c, γ, terminal, μ_prob, π_prob, π_prob/μ_prob)
 
     add!(agent.ER, experience)
     add!(agent.WER, experience, π_prob/μ_prob)
@@ -79,7 +80,7 @@ function JuliaRL.step!(agent::TCFourRoomsContAgent, env_s_tp1, r, terminal; rng=
     agent.counter -= 1
 
     agent.state_t = env_s_tp1
-    agent.action_t = JuliaRL.get_action(agent, agent.state_t; rng=rng)
+    agent.action_t = action_tp1 #JuliaRL.get_action(agent, agent.state_t; rng=rng)
     return agent.action_t
 end
 
@@ -90,20 +91,13 @@ function train_value_functions(agent::TCFourRoomsContAgent; rng=Random.GLOBAL_RN
     samp_er = sample(agent.ER, agent.batch_size; rng=rng)
     samp_wer = sample(agent.WER, agent.batch_size; rng=rng)
 
-    action_tp1_er = [StatsBase.sample(rng, agent.μ, s) for s in samp_er[:s_tp1]]
-    action_tp1_wer = [StatsBase.sample(rng, agent.μ, s) for s in samp_wer[:s_tp1]]
-    # action_tp1 = StatsBase.sample(rng, [1, 2], StatsBase.weights(π), batch_size)
-
     arg_er = (samp_er[:ρ], samp_er[:s_t], samp_er[:s_tp1],
               samp_er[:r], samp_er[:γ_tp1], samp_er[:terminal],
-              samp_er[:a_t], action_tp1_er, agent.gvf.policy)
-
-    # println("ER:", samp_er[:s_t])
+              samp_er[:a_t], samp_er[:a_tp1], agent.gvf.policy)
 
     arg_wer = (ones(length(samp_wer[:ρ])), samp_wer[:s_t], samp_wer[:s_tp1],
                samp_wer[:r], samp_wer[:γ_tp1], samp_wer[:terminal],
-               samp_er[:a_t], action_tp1_wer, agent.gvf.policy)
-    # println("WER:", samp_wer[:s_t])
+               samp_er[:a_t], samp_wer[:a_tp1], agent.gvf.policy)
 
     for (α_idx, α) in enumerate(α_arr)
         opt = Descent(α)

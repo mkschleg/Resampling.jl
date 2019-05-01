@@ -70,7 +70,7 @@ mutable struct FourRoomsCont <: AbstractEnvironment
 end
 
 
-FourRoomsCont(max_action_noise = 0.0, drift_noise = 0.0) =
+FourRoomsCont(max_action_noise = 0.1, drift_noise = 0.001) =
     FourRoomsCont([0.0,0.0], convert(Array{Bool}, FourRoomsContParams.BASE_WALLS), max_action_noise, drift_noise, false)
 FourRoomsCont(walls::Array{Int64, 2}) = FourRoomsCont([0.0,0.0], convert(Array{Bool}, walls), 0.0, 0.0, false)
 function FourRoomsCont(size::Int, wall_list::Array{CartesianIndex{2}}, max_action_noise::Float64, drift_noise::Float64)
@@ -342,3 +342,5 @@ function get_sequence(env::FourRoomsCont, num_steps, policy; seed=0, normalized=
     end
     return states
 end
+
+

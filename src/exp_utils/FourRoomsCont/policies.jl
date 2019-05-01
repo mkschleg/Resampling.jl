@@ -57,6 +57,17 @@ function gen_states(seed, num)
     return states
 end
 
+function gen_states(rng::Random.AbstractRNG, num)
+    states = []
+    while length(states) < num
+        new_state = rand(rng, 1:11, 2)
+        if !(new_state in states)
+            append!(states, [new_state])
+        end
+    end
+    return states
+end
+
 struct RandomStateVariant <: AbstractPolicy
     states::Array{Array{Int64, 1}, 1}
     weights::Weights
@@ -82,19 +93,66 @@ function Base.get(π::RandomStateVariant, state_t::Array{Float64, 1}, action_t, 
     return prob
 end
 
+
+struct RandomStateWeightVariant <: AbstractPolicy
+    states::Array{Array{Int64, 1}, 1}
+    weights::Dict{Array{Int64, 1}, Weights}
+end
+
+function random_weight_vector(rng, num_actions)
+    favored_action = rand(rng, 1:num_actions)
+    prob = 0.5*(rand(rng) + 1.0)
+    [act == favored_action ? prob : (1.0-prob)/(num_actions-1) for act in 1:num_actions]
+end
+
+function RandomStateWeightVariant(num_states::Int64, seed::Int64)
+    rng = Random.MersenneTwister(seed)
+    states = gen_states(rng, num_states)
+    weights = Dict([state=>Weights(random_weight_vector(rng, 4)) for state in states])
+    RandomStateWeightVariant(states, weights)
+end
+
+RandomStateWeightVariant() =
+    RandomStateWeightVariant(25, 1143139448)
+
+function Base.get(π::RandomStateWeightVariant, state_t::Array{Float64, 1}, action_t, state_tp1, action_tp1, preds_tp1)
+    prob = -1.0
+    prj = Int64.(floor.(state_t) .+ 1)
+    if prj ∈ π.states
+        prob = π.weights[prj][action_t]
+    else
+        prob = 0.25
+    end
+    return prob
+end
+
 # function Base.get(π::RandomStateVariant, state_t::CartesianIndex{2}, action_t, state_tp1, action_tp1, preds_tp1)
 #     return StatsBase.get(π, [state_t[1], state_t[2]], action_t, state_tp1, action_tp1, preds_tp1)
 # end
 
-function StatsBase.sample(rng::Random.AbstractRNG, π::RandomStateVariant, state::Array{Float64, 1})
+function StatsBase.sample(rng::Random.AbstractRNG, π::RandomStateWeightVariant, state::Array{Float64, 1})
     act = -1
-    if Int64.(floor.(state) .+ 1) ∈ π.states
-        act = StatsBase.sample(rng, 1:4, π.weights)
+    prj = Int64.(floor.(state) .+ 1)
+    if prj ∈ π.states
+        act = StatsBase.sample(rng, 1:4, π.weights[prj])
     else
         act = rand(rng, 1:4)
     end
     return act
 end
+
+
+# mutable struct EvolvingPolicy
+#     policies::Array{AbstractPolicy, 1}
+#     EvolvingPolicy(args::AbstractPolicy...) = new([args...])
+# end
+
+# function Base.get(π::RandomStateVariant, state_t::Array{Float64, 1}, action_t, state_tp1, action_tp1, preds_tp1)
+# end
+
+# function StatsBase.sample(rng::Random.AbstractRNG, π::RandomStateVariant, state::Array{Float64, 1})
+    
+# end
 
 # function StatsBase.sample(rng::Random.AbstractRNG, π::RandomStateVariant, state::CartesianIndex{2})
 #     return StatsBase.sample(rng, π, [state[1], state[2]])
