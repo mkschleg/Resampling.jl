@@ -9,7 +9,7 @@ const save_loc = "four_rooms_cont_nn_exp"
 const exp_file = "experiment/four_rooms_cont_nn.jl"
 const exp_module_name = :FourRoomsContNNExperiment
 const exp_func_name = :main_experiment
-const alphas = collect(0.0:0.1:2.0)
+const alphas = [0.0001, 0.001, 0.01, 0.1]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [1, 8, 16]
@@ -65,7 +65,7 @@ function main()
                     "--numinter", string(numsteps),
                     "--eval_points", "100",
                     "--eval_steps", "100",
-                    "--opt", "Descent",
+                    "--opt", "RMSProp",
                     "--compress"]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
