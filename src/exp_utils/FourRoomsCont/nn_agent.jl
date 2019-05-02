@@ -25,7 +25,7 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
     action_t::Int64
     ones::Array{Array{Float32, 1}, 1}
     to_update::Dict{String, Bool}
-    max_is::Float64
+    max_is::Float32
     function NNFourRoomsContAgent(μ::P, gvf::GVF, opt::O,
                                   training_gap, buffer_size, batch_size,
                                   warm_up, parsed, env_size;
@@ -131,11 +131,11 @@ function train_value_functions(agent::NNFourRoomsContAgent; rng=Random.GLOBAL_RN
             elseif agent.sample_dict[key] == "ER"
                 if key == "WISBuffer"
                     corr_term = Resampling.total(agent.WER)/size(agent.WER)[1]
-                    update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_er...; corr_term=1.0/corr_term)
+                    update!(agent.value_dict[key], agent.opt, agent.algo_dict[key], arg_er...; corr_term=1.0/corr_term)
                 elseif key == "NormIS"
-                    update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_er[1]./agent.max_is, arg_er...;)
+                    update!(agent.value_dict[key], agent.opt, agent.algo_dict[key], arg_er[1]./agent.max_is, arg_er[2:end]...;)
                 else
-                    update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_er...;)
+                    update!(agent.value_dict[key], agent.opt, agent.algo_dict[key], arg_er...;)
                 end
             elseif agent.sample_dict[key] == "Optimal"
                 samp_opt = agent.ER.buffer
@@ -144,6 +144,7 @@ function train_value_functions(agent::NNFourRoomsContAgent; rng=Random.GLOBAL_RN
                 update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_opt...;)
             end
         catch ex
+            println(ex)
             if ex.msg == "Loss is infinite" || ex.msg == "Loss is NaN"
                 agent.to_update[key] = false
             else
