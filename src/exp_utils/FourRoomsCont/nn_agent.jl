@@ -37,11 +37,16 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
         value_dict = Dict{String, Flux.Chain}()
         to_update = Dict{String, Bool}()
         init_func=(dims...)->Resampling.glorot_uniform(rng, dims...)
+        base_network = Chain(
+            Dense(2, 10, relu; initW=init_func),
+            Dense(10, 10, relu; initW=init_func),
+            Dense(10, 1; initW=init_func)
+        )
         for key in keys(algo_dict)
             if value_type_dict[key] == "State"
-                value_dict[key] = Chain(Dense(2, 10, relu; initW=init_func), Dense(10, 10, relu; initW=init_func), Dense(10, 1; initW=init_func))
+                value_dict[key] = deepcopy(base_network)
             else
-                value_dict[key] = Chain(Dense(2, 10, relu; initW=init_func), Dense(10, 10, relu; initW=init_func), Dense(10, 4; initW=init_func))
+                value_dict[key] = deepcopy(base_network)
             end
             to_update[key] = true
         end
