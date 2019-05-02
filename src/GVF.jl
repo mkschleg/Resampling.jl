@@ -101,8 +101,10 @@ struct RandomPolicy{T<:AbstractFloat} <: AbstractPolicy
 end
 
 UniformRandomPolicy(num_actions::Integer) = RandomPolicy(fill(1.0/num_actions, num_actions))
-FavoredRandomPolicy(num_actions::Integer, favored_action::Integer, favored_prob::T) where {T<:AbstractFloat}=
+FavoredRandomPolicy(num_actions::Integer, favored_action::Integer, favored_prob::T) where {T<:AbstractFloat} =
     RandomPolicy([ act == favored_action ? favored_prob : (T(1.0) - favored_prob)/(num_actions-1) for act in 1:num_actions])
+
+
 
 Base.get(π::RandomPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) = π.probabilities[action_t]
 

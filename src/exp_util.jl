@@ -19,6 +19,9 @@ function algorithm_settings!(s::ArgParseSettings)
         "--is"
         action = :store_true
         help = "set to include base off-policy importance sampling"
+        "--normis"
+        action = :store_true
+        help = "set to include base off-policy importance sampling"
         "--ir"
         action = :store_true
         help = "Set to include ir"
@@ -62,6 +65,11 @@ function build_algorithm_dict(parsed; max_is=1.0)
         algo_dict["IS"] = BatchTD()
         sample_dict["IS"] = "ER"
         value_type_dict["IS"] = "State"
+    end
+    if parsed["normis"]
+        algo_dict["NormIS"] = BatchTD()
+        sample_dict["NormIS"] = "ER"
+        value_type_dict["NormIS"] = "State"
     end
     if parsed["ir"]
         algo_dict["IR"] = BatchTD()

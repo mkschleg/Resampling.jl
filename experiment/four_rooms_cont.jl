@@ -121,7 +121,7 @@ function main_experiment(args::Vector{String})
 
     μ = get_policy(parsed)
     gvf = FourRoomsContUtil.GVFS[parsed["gvf"]]
-
+    max_is_ratio = FourRoomsContUtil.get_max_is_ratio(μ, gvf.policy)
 
     rng = MersenneTwister(parsed["seed"] + parsed["run"])
 
@@ -130,7 +130,8 @@ function main_experiment(args::Vector{String})
     eval_states = FourRoomsContUtil.sample_according_to_dmu(env, parsed["policy"], parsed["eval_points"]; rng=rng)
     eval_rets = [mean(Resampling.MonteCarloReturn(env, gvf, start_state, 100; rng=rng)) for start_state in eval_states]
 
-    agent = TCFourRoomsContAgent(μ, gvf, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env))
+    agent = TCFourRoomsContAgent(μ, gvf, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env);
+                                 max_is_ratio=max_is_ratio)
 
     error_dict = Dict{String, Array{Float64}}()
     for key in keys(agent.algo_dict)

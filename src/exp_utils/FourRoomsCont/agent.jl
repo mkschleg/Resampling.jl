@@ -23,6 +23,7 @@ mutable struct TCFourRoomsContAgent{P<:Resampling.AbstractPolicy} <: JuliaRL.Abs
     state_t::Tuple{Array{Float64, 1}, Bool}
     action_t::Int64
     α_arr::Array{Float64, 1}
+    max_is::Float64
     function TCFourRoomsContAgent(μ::P, gvf::GVF, num_tilings, num_tiles, α_arr::Array{Float64, 1},
                                   training_gap, buffer_size, batch_size,
                                   warm_up, parsed, env_size; max_is_ratio=1.0) where {P<:Resampling.AbstractPolicy}
@@ -45,7 +46,8 @@ mutable struct TCFourRoomsContAgent{P<:Resampling.AbstractPolicy} <: JuliaRL.Abs
         ER = ExperienceReplay(buffer_size, er_types; column_names=er_names)
         WER = WeightedExperienceReplay(buffer_size, er_types; column_names=er_names)
         new{P}(μ, ER, WER, tilecoder, gvf, training_gap, buffer_size, batch_size, warm_up,
-               algo_dict, sample_dict, value_dict, warm_up, ([0.0,0.0], false), 0, α_arr)
+               algo_dict, sample_dict, value_dict, warm_up, ([0.0,0.0], false), 0, α_arr,
+               max_is_ratio)
     end
 end
 
@@ -68,7 +70,7 @@ function JuliaRL.step!(agent::TCFourRoomsContAgent, env_s_tp1, r, terminal; rng=
 
     experience = (create_features(agent.tilecoder, agent.state_t[1]./11.0),
                   create_features(agent.tilecoder, env_s_tp1[1]./11.0),
-                  agent.action_t, action_tp1, c, γ, terminal, μ_prob, π_prob, π_prob/μ_prob)
+                  agent.action_t, action_tp1, c, γ, terminal, μ_prob, π_prob, (π_prob/μ_prob))
 
     add!(agent.ER, experience)
     add!(agent.WER, experience, π_prob/μ_prob)
@@ -109,7 +111,14 @@ function train_value_functions(agent::TCFourRoomsContAgent; rng=Random.GLOBAL_RN
                 end
                 update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_wer...; corr_term=corr_term)
             elseif agent.sample_dict[key] == "ER"
-                update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er...;)
+                if key == "WISBuffer"
+                    corr_term = Resampling.total(agent.WER)/size(agent.WER)[1]
+                    update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er...; corr_term=1.0/corr_term)
+                elseif key == "NormIS"
+                    update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er[1]./agent.max_is, arg_er[2:end]...;)
+                else
+                    update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er...;)
+                end
             elseif agent.sample_dict[key] == "Optimal"
                 samp_opt = agent.ER.buffer
                 arg_opt = (samp_opt[:ρ], samp_opt[:s_t], samp_opt[:s_tp1],
