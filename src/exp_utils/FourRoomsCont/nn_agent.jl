@@ -30,7 +30,6 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
                                   training_gap, buffer_size, batch_size,
                                   warm_up, parsed, env_size;
                                   max_is_ratio=1.0,
-                                  norm_is=false,
                                   rng=Random.GLOBAL_RNG,
                                   normalize::F=identity) where {O, P<:Resampling.AbstractPolicy, F}
 
@@ -60,7 +59,7 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
         new{O, P, F}(μ, ER, WER, opt, normalize, gvf, training_gap, buffer_size, batch_size, warm_up,
                      algo_dict, sample_dict, value_dict, warm_up, ([0.0,0.0], false), 0,
                      [ones(Float32, 1) for i in 1:batch_size], to_update,
-                     norm_is ? max_is_ratio : 1.0)
+                     max_is_ratio)
     end
 end
 
@@ -83,7 +82,7 @@ function JuliaRL.step!(agent::NNFourRoomsContAgent, env_s_tp1, r, terminal; rng=
     experience = (agent.normalize(agent.state_t[1]),
                   agent.normalize(env_s_tp1[1]),
                   agent.action_t, [c], [γ], terminal,
-                  μ_prob, π_prob, [π_prob/μ_prob]./max_is_ratio)
+                  μ_prob, π_prob, [π_prob/μ_prob])
 
     add!(agent.ER, experience)
     add!(agent.WER, experience, π_prob/μ_prob)
@@ -130,7 +129,14 @@ function train_value_functions(agent::NNFourRoomsContAgent; rng=Random.GLOBAL_RN
                 end
                 update!(agent.value_dict[key], agent.opt, agent.algo_dict[key], arg_wer...; corr_term=corr_term)
             elseif agent.sample_dict[key] == "ER"
-                update!(agent.value_dict[key], agent.opt, agent.algo_dict[key], arg_er...;)
+                if key == "WISBuffer"
+                    corr_term = Resampling.total(agent.WER)/size(agent.WER)[1]
+                    update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_er...; corr_term=1.0/corr_term)
+                elseif key == "NormIS"
+                    update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_er[1]./agent.max_is, arg_er...;)
+                else
+                    update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_er...;)
+                end
             elseif agent.sample_dict[key] == "Optimal"
                 samp_opt = agent.ER.buffer
                 arg_opt = (samp_opt[:ρ], samp_opt[:s_t], samp_opt[:s_tp1],

@@ -54,10 +54,10 @@ function main()
         "run"=>1:parsed["numruns"]
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
-    alg_list = ["--is", "--ir",
+    alg_list = ["--normis", "--is", "--ir",
                 "--bcir",
-                "--wisbuffer", "--wisbatch"]
-                # "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
+                "--wisbuffer", "--wisbatch",
+                "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),
@@ -67,7 +67,7 @@ function main()
                     # "--noise_params", "0.1", "0.001",
                     "--eval_points", "100",
                     "--eval_steps", "100",
-                    "--norm_is",
+                    # "--norm_is",
                     "--compress",
                     "--alphas"]; string.(alphas./16)]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
