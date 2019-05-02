@@ -123,6 +123,11 @@ function update!(model, opt, lu::WISBatchTD, ρ, s_t, s_tp1, r, γ, terminal; co
     update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_avg)*corr_term)
 end
 
+function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0) where {T<:AbstractArray}
+    wis_avg = mean(mean(ρ))
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0./wis_avg)*corr_term)
+end
+
 
 mutable struct VTrace <: LearningUpdate
     ρ_bar::Float64
@@ -132,6 +137,11 @@ end
 
 function update!(model, opt, lu::VTrace, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
     update!(model, opt, lu.batch_td, clamp.(ρ, 0.0, lu.ρ_bar), s_t, s_tp1, r, γ, terminal; corr_term=corr_term)
+end
+
+function update!(model, opt, lu::VTrace, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0)  where {T<:AbstractFloat}
+    clamp_ρ = [clamp.(_ρ, T(0.0), T(lu.ρ_bar)) for _ρ in ρ]
+    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term)
 end
 
 """
