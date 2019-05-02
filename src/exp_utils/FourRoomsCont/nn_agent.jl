@@ -46,7 +46,8 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
             if value_type_dict[key] == "State"
                 value_dict[key] = deepcopy(base_network)
             else
-                value_dict[key] = deepcopy(base_network)
+                throw("Not Implemented")
+                # value_dict[key] = deepcopy(base_network)
             end
             to_update[key] = true
         end
