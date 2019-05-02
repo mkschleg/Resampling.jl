@@ -25,10 +25,12 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
     action_t::Int64
     ones::Array{Array{Float32, 1}, 1}
     to_update::Dict{String, Bool}
+    max_is::Float64
     function NNFourRoomsContAgent(μ::P, gvf::GVF, opt::O,
                                   training_gap, buffer_size, batch_size,
                                   warm_up, parsed, env_size;
                                   max_is_ratio=1.0,
+                                  norm_is=false,
                                   rng=Random.GLOBAL_RNG,
                                   normalize::F=identity) where {O, P<:Resampling.AbstractPolicy, F}
 
@@ -47,7 +49,6 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
                 value_dict[key] = deepcopy(base_network)
             else
                 throw("Not Implemented")
-                # value_dict[key] = deepcopy(base_network)
             end
             to_update[key] = true
         end
@@ -57,7 +58,9 @@ mutable struct NNFourRoomsContAgent{O, P<:Resampling.AbstractPolicy, F} <: Julia
         ER = ExperienceReplay(buffer_size, er_types; column_names=er_names)
         WER = WeightedExperienceReplay(buffer_size, er_types; column_names=er_names)
         new{O, P, F}(μ, ER, WER, opt, normalize, gvf, training_gap, buffer_size, batch_size, warm_up,
-               algo_dict, sample_dict, value_dict, warm_up, ([0.0,0.0], false), 0, [ones(Float32, 1) for i in 1:batch_size], to_update)
+                     algo_dict, sample_dict, value_dict, warm_up, ([0.0,0.0], false), 0,
+                     [ones(Float32, 1) for i in 1:batch_size], to_update,
+                     norm_is ? max_is_ratio : 1.0)
     end
 end
 
@@ -79,7 +82,8 @@ function JuliaRL.step!(agent::NNFourRoomsContAgent, env_s_tp1, r, terminal; rng=
 
     experience = (agent.normalize(agent.state_t[1]),
                   agent.normalize(env_s_tp1[1]),
-                  agent.action_t, [c], [γ], terminal, μ_prob, π_prob, [π_prob/μ_prob])
+                  agent.action_t, [c], [γ], terminal,
+                  μ_prob, π_prob, [π_prob/μ_prob]./max_is_ratio)
 
     add!(agent.ER, experience)
     add!(agent.WER, experience, π_prob/μ_prob)

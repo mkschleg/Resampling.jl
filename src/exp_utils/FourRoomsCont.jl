@@ -39,11 +39,16 @@ const constructed_policy_settings = Dict(
 const GVFS = Dict(
     "collide_down"=>GVF(FunctionalCumulant((state_t, action_t, state_tp1, action_tp1, preds_tp1)-> (state_tp1[2] ? 1.0 : 0.0)),
                 StateTerminationDiscount(0.9, (state_t, action_t, state_tp1)->(state_tp1[2])),
-                PersistentPolicy(3)),
+                FavoredRandomPolicy(4, 3, 1.0)),
     "favored_down"=>GVF(FunctionalCumulant((state_t, action_t, state_tp1, action_tp1, preds_tp1)-> (state_tp1[2] ? 1.0 : 0.0)),
                         StateTerminationDiscount(0.9, (state_t, action_t, state_tp1)->(state_tp1[2])),
                         FavoredRandomPolicy(4, 3, 0.9))
 )
+
+get_max_is_ratio(μ::RandomPolicy, π::RandomPolicy) =
+    maximum(π.probabilities./μ.probabilites)
+get_max_is_ratio(μ::FRStateDependentPolicy, π::RandomPolicy) =
+    maximum([maximum(π.probabilities./μ.weights[state]) for state in μ.states])
 
 
 function env_settings!(s::ArgParseSettings)
@@ -56,11 +61,6 @@ function env_settings!(s::ArgParseSettings)
         help = "The gvf to learn: $(keys(GVFS))"
         range_tester=(gvf)->(gvf ∈ keys(GVFS))
         required=true
-        # "--noise_params"
-        # help = "Noise parameters for the four rooms environment"
-        # arg_type=Float64
-        # nargs='+'
-        # default=[0.0, 0.0]
     end
 end
 
