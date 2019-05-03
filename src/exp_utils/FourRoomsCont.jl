@@ -46,7 +46,7 @@ const GVFS = Dict(
 )
 
 get_max_is_ratio(μ::RandomPolicy, π::RandomPolicy) =
-    maximum(π.probabilities./μ.probabilites)
+    maximum(π.probabilities./μ.probabilities)
 get_max_is_ratio(μ::FRStateDependentPolicy, π::RandomPolicy) =
     maximum([maximum(π.probabilities./μ.weights[state]) for state in μ.states])
 
