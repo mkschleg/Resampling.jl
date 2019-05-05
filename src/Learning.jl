@@ -71,10 +71,10 @@ update!(model, opt, lu::LearningUpdate, ρ, s_t, s_tp1, r, γ, terminal, a_t, a_
 
 mutable struct BatchTD <: LearningUpdate end
 
-function update!(model, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+function update!(model, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)
     v_t = model.(s_t)
     v_tp1 = model.(s_tp1)
-    loss = offpolicy_tdloss(ρ, v_t, r, γ, Flux.data.(v_tp1))
+    loss = offpolicy_tdloss(ρ.*corr_term, v_t, r, γ, Flux.data.(v_tp1))
     grads = Flux.gradient(()->loss, params(model))
     for weights in params(model)
         Flux.Optimise.update!(opt, weights, grads[weights])
@@ -142,6 +142,32 @@ end
 function update!(model, opt, lu::VTrace, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0)  where {T<:AbstractFloat}
     clamp_ρ = [clamp.(_ρ, T(0.0), T(lu.ρ_bar)) for _ρ in ρ]
     update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term)
+end
+
+mutable struct IncNormIS <: LearningUpdate
+    max_is::IdDict
+    batch_td::BatchTD
+    IncNormIS() = new(IdDict(), BatchTD())
+end
+
+function update!(model, opt, lu::IncNormIS, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    if !(model ∈ keys(lu.max_is))
+        lu.max_is[model] = 1.0f0
+    end
+    max_is = max(lu.max_is[model], maximum(ρ))
+    lu.max_is[model] = max_is
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term/max_is)
+end
+
+function update!(model, opt, lu::IncNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)  where {T<:AbstractFloat}
+    if !(model ∈ keys(lu.max_is))
+        lu.max_is[model] = ones(T, length(ρ[1]))
+    end
+    max_is = lu.max_is[model]
+    for idx in 1:length(max_is)
+        max_is[idx] = max(max_is[idx], maximum(get.(ρ, idx)))
+    end
+    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./max_is)
 end
 
 """

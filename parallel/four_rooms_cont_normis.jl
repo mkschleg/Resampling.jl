@@ -5,7 +5,7 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "four_rooms_cont_exp_normis"
+const save_loc = "four_rooms_cont_exp_incnormis"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
@@ -54,10 +54,10 @@ function main()
         "run"=>1:parsed["numruns"]
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
-    alg_list = ["--normis", "--is", "--ir",
-                "--bcir",
-                "--wisbuffer", "--wisbatch",
-                "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
+    alg_list = ["--normis", "--is", "--ir", "--incnormis"
+                # "--wisbuffer", "--wisbatch",
+                # "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"
+                ]
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),
