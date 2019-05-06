@@ -35,14 +35,15 @@ Tabular(dims::Integer...) = TabularLayer(zeros(dims...))
 (layer::TabularLayer)(x) = layer[x]
 (layer::TabularLayer)(x::Array{T, 1}) where {T<:Integer} = layer[x...]
 
-mutable struct SparseLayer{F, FP, A}
+mutable struct SparseLayer{F, FP, A, P}
     σ::F
     σ′::FP
     W::A
+    ϕ::P
 end
 
 SparseLayer(num_weights::Integer, out::Integer, σ=identity, σ′=identity′; init=(dims...)->zeros(Float32, dims...)) =
-    SparseLayer(σ, σ′, init(out, num_weights))
+    SparseLayer(σ, σ′, init(out, num_weights), zeros(Float32, out, num_weights))
 
 (layer::SparseLayer)(x::Array{Int64, 1}) = layer.σ.(sum(layer.W[x]))
 deriv(layer::SparseLayer, x::Array{Int64, 1}) = layer.σ′.(sum(layer.W[x]))

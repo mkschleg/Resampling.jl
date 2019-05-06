@@ -10,6 +10,7 @@ using Resampling.ExpUtils.FourRoomsContUtil
 # import JuliaRL
 using Random
 using Statistics
+import Flux
 import Flux: Descent
 import ProgressMeter
 import StatsBase
@@ -82,6 +83,9 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
     end
 
     @add_arg_table as begin
+        "--opt"
+        arg_type=String
+        default="Descent"
         "--alphas"
         arg_type=Float64
         nargs='+'
@@ -129,8 +133,8 @@ function main_experiment(args::Vector{String})
     # eval_states = [Resampling.random_start_state(env, rng) for i in 1:parsed["eval_points"]]
     eval_states = FourRoomsContUtil.sample_according_to_dmu(env, parsed["policy"], parsed["eval_points"]; rng=rng)
     eval_rets = [mean(Resampling.MonteCarloReturn(env, gvf, start_state, 100; rng=rng)) for start_state in eval_states]
-
-    agent = TCFourRoomsContAgent(μ, gvf, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env);
+    opt = getproperty(Flux, Symbol(parsed["opt"]))()
+    agent = TCFourRoomsContAgent(μ, gvf, opt, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env);
                                  max_is_ratio=max_is_ratio)
 
     error_dict = Dict{String, Array{Float64}}()
@@ -144,8 +148,8 @@ function main_experiment(args::Vector{String})
 
     eval_step = 1
 
-    # ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
-    for step in 1:num_interactions
+    ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
+    # for step in 1:num_interactions
 
         # Get experience from environment.
         _, s_tp1, r, terminal = step!(env, action; rng=rng)
