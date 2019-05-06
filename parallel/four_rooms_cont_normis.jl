@@ -13,7 +13,8 @@ const alphas = collect(0.0:0.05:1.0)
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [1, 8, 16]
-const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64]
+const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
+# const train_gaps = [80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
 const buffersize = 15000
 const numsteps = 250000
@@ -23,7 +24,8 @@ function make_arguments(args::Dict{String, String})
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
-              "--run", args["run"]]
+              "--run", args["run"],
+              "--alphas", string.(parse(Int64, args["batchsize"]).*alphas./16)...]
     return new_args
 end
 
@@ -54,10 +56,17 @@ function main()
         "run"=>1:parsed["numruns"]
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
+# <<<<<<< HEAD
+#     alg_list = ["--normis", "--ir",
+#                 "--bcir",
+#                 "--wisbuffer", "--wisbatch",
+#                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
+
     alg_list = ["--normis", "--is", "--ir", "--incnormis"
                 # "--wisbuffer", "--wisbatch",
                 # "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"
                 ]
+
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),
@@ -68,8 +77,7 @@ function main()
                     "--eval_points", "100",
                     "--eval_steps", "100",
                     # "--norm_is",
-                    "--compress",
-                    "--alphas"]; string.(alphas./16)]
+                    "--compress"]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
     if parsed["numjobs"]
