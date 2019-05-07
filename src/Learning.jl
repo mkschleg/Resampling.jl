@@ -108,19 +108,14 @@ function update!(model::SparseLayer, opt::RMSProp, lu::BatchTD, ρ, s_t, s_tp1, 
 
     dvdt = [deriv(model, s) for s in s_t]
     δ = ρ.*tderror(v_t, r, γ, v_tp1)
-    # ΔW_t = zero(model.W)
     fill!(model.ϕ, 0.0f0)
     Δ = δ.*dvdt.*1//length(ρ)
-    # println(Δ, corr_term)
     for i in 1:length(ρ)
         model.ϕ[s_t[i]] .+= corr_term*Δ[i]
     end
     feats = unique(collect(Iterators.flatten(s_t)))
-    # println(sum(model.ϕ))
-    # model.ϕ .= Flux.Optimise.apply!(opt, model.W, model.ϕ)
-    acc = get!(opt.acc, model.W, zero(model.W))::typeof(model.W)
-    # @. acc = ρ * acc + (1 - ρ) * bΔ^2
 
+    acc = get!(opt.acc, model.W, zero(model.W))::typeof(model.W)
     acc .*= opt.rho
     acc[feats] .+= (1-opt.rho) .* model.ϕ[feats].^2
     model.W[feats] .-= model.ϕ[feats].*(opt.eta./sqrt.(acc[feats] .+ 1e-8))
@@ -144,13 +139,13 @@ mutable struct WISBatchTD <: LearningUpdate
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
-    wis_avg = mean(ρ)
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_avg)*corr_term)
+    wis_sum = sum(ρ)
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_sum)*corr_term)
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0) where {T<:AbstractArray}
-    wis_avg = mean(mean(ρ))
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0./wis_avg)*corr_term)
+    wis_sum = sum(ρ)
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(corr_term./wis_sum))
 end
 
 
@@ -203,41 +198,18 @@ mutable struct WSNormIS <: LearningUpdate
 end
 
 function update!(model, opt, lu::WSNormIS, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
-    get!(lu.weighted_sum_is, model, 0.0f0)
-    lu.weighted_sum_is[model] = lu.beta*maximum(ρ) + (1.0f0-lu.beta)*lu.weighted_sum_is[model]
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term/lu.weighted_sum_is[model])
+    get!(lu.weighted_sum_is, model, 0.0f0)::Float32
+    lu.weighted_sum_is[model] = Float32(lu.beta*maximum(ρ)^2 + (1.0f0-lu.beta)*lu.weighted_sum_is[model])
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term/sqrt(lu.weighted_sum_is[model]))
 end
 
 function update!(model, opt, lu::WSNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)  where {T<:AbstractFloat}
-    get!(lu.weighted_sum_is, model, zeros(T, length(ρ[1])))
-    weighted_sum_is = lu.weighted_sum_is[model]
+    weighted_sum_is = get!(lu.weighted_sum_is, model, zeros(T, length(ρ[1])))::type(Array{T, 1})
     for idx in 1:length(max_is)
-        weighted_sum_is[idx] = lu.beta*maximum(get.(ρ, idx)) + (1.0f0-lu.beta)*weighted_sum_is[idx]
+        weighted_sum_is[idx] = lu.beta*maximum(get.(ρ, idx))^2 + (1.0f0-lu.beta)*weighted_sum_is[idx]
     end
-    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./weighted_sum_is)
+    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./sqrt.(weighted_sum_is))
 end
-
-# mutable struct RMSPropIS <: LearningUpdate
-#     beta::Flaot32
-#     weighted_sum_is::IdDict
-#     batch_td::BatchTD
-#     WSNormIS(beta::Float32=0.9f0) = new(beta, IdDict(), BatchTD())
-# end
-
-# function update!(model, opt, lu::RMSPropIS, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
-#     get!(lu.weighted_sum_is, model, 0.0f0)
-#     lu.weighted_sum_is[model] = lu.beta*maximum(ρ) + (1.0f0-lu.beta)*lu.weighted_sum_is[model]
-#     update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term/lu.weighted_sum_is[model])
-# end
-
-# function update!(model, opt, lu::RMSPropIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)  where {T<:AbstractFloat}
-#     get!(lu.weighted_sum_is, model, zeros(T, length(ρ[1]))
-#     weighted_sum_is = lu.weighted_sum_is[model]
-#     for idx in 1:length(max_is)
-#         weighted_sum_is[idx] = lu.beta*maximum(get.(ρ, idx)) + (1.0f0-lu.beta)*weighted_sum_is[idx]
-#     end
-#     update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./weighted_sum_is)
-# end
 
 """
     All Q Learning algorithms are defined with multiple outputs, there is no cont action cases yet.
