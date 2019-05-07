@@ -5,15 +5,16 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "four_rooms_cont_exp_rmsprop"
+const save_loc = "four_rooms_cont_exp_rmsprop_indalpha"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
-const alphas = [0.0001, 0.0005, 0.001, 0.005, 0.01]
+const alphas = [0.0, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [1, 8, 16]
-const train_gaps = [1]
+# const train_gaps = [1]
+const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 128, 256]
 # const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64]
 const warm_up = 1000
 const buffersize = 15000
@@ -24,7 +25,8 @@ function make_arguments(args::Dict{String, String})
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
-              "--run", args["run"]]
+              "--run", args["run"],
+              "--alphas", args["alpha"]]
     return new_args
 end
 
@@ -52,9 +54,10 @@ function main()
         "gvf"=>gvfs,
         "train_gap"=>train_gaps,
         "batchsize"=>batchsizes,
-        "run"=>1:parsed["numruns"]
+        "run"=>1:parsed["numruns"],
+        "alpha"=>alphas
     ])
-    arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
+    arg_list = ["policy", "gvf", "train_gap", "batchsize", "alpha", "run"]
     alg_list = ["--normis", "--is", "--ir", "--incnormis"
                 # "--wisbuffer", "--wisbatch",
                 # "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"
@@ -70,8 +73,8 @@ function main()
                     "--eval_steps", "100",
                     # "--norm_is",
                     "--compress",
-                    "--opt", "RMSProp",
-                    "--alphas"]; string.(alphas)]
+                    "--opt", "RMSProp"]]
+                    # "--alphas"]; string.(alphas)]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
     if parsed["numjobs"]
