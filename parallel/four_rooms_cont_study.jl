@@ -10,6 +10,7 @@ const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
 const alphas = collect(0.0:0.05:1.0)
+alphas = [collect(0.0:0.01:0.1)..., 0.2, 0.3, 0.4, 0.5, 0.75, 1.0]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [1, 8, 16]
@@ -56,18 +57,9 @@ function main()
         "run"=>1:parsed["numruns"]
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
-# <<<<<<< HEAD
-#     alg_list = ["--normis", "--ir",
-#                 "--bcir",
-#                 "--wisbuffer", "--wisbatch",
-#                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
 
-    alg_list = ["--normis", "--is", "--ir", "--incnormis", "--wsnormis",
-                "--wisbatch",
+    alg_list = ["--normis", "--ir", "--incnormis", "--wsnormis", "--wisbatch",
                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
-                # "--wisbuffer", "--wisbatch",
-                # "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"
-                # ]
 
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
@@ -75,10 +67,8 @@ function main()
                     "--buffersize", string(buffersize),
                     "--seed", "0",
                     "--numinter", string(numsteps),
-                    # "--noise_params", "0.1", "0.001",
                     "--eval_points", "100",
                     "--eval_steps", "100",
-                    # "--norm_is",
                     "--compress"]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
