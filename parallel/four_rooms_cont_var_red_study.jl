@@ -13,7 +13,7 @@ const exp_func_name = :main_experiment
 const alphas = [collect(0.0:0.01:0.1)..., 0.2, 0.3, 0.4, 0.5, 0.75, 1.0]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
-const batchsizes = [1, 8, 16]
+const batchsizes = [8, 16]
 const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
 # const train_gaps = [80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
@@ -26,7 +26,7 @@ function make_arguments(args::Dict{String, String})
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
               "--run", args["run"],
-              "--alphas", string.(alphas./parse(Int64, args["batchsize"]))...]
+              "--alphas", string.(alphas)...]
     return new_args
 end
 
