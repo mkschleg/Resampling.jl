@@ -148,8 +148,8 @@ function main_experiment(args::Vector{String})
 
     eval_step = 1
 
-    # ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
-    for step in 1:num_interactions
+    ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
+    # for step in 1:num_interactions
 
         # Get experience from environment.
         _, s_tp1, r, terminal = step!(env, action; rng=rng)

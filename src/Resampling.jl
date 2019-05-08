@@ -41,10 +41,6 @@ export
     update!
 include("Learning.jl")
 
-
-# include("LinearRL.jl")
-# include("TabularRL.jl")
-
 include("Environments.jl")
 
 export MarkovChainUtil
