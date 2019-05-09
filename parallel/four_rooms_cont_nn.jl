@@ -73,8 +73,8 @@ function main()
                     "--eval_points", "100",
                     "--eval_steps", "100",
                     "--opt", "RMSProp",
-                    "--compress",
-                    "--alphas"]; string.(collect(alphas))]
+                    "--compress"]]
+                    # "--alphas"]; string.(collect(alphas))]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
     if parsed["numjobs"]
