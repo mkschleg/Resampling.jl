@@ -5,7 +5,7 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "four_rooms_cont_exp_rmsprop_indalpha"
+const save_loc = "four_rooms_cont_exp_rmsprop_supl"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
