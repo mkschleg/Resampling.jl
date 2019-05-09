@@ -63,7 +63,8 @@ function main()
         "run"=>1:parsed["numruns"]
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "alpha", "run"]
-    alg_list = ["--is", "--ir", "--bcir"]
+    alg_list = ["--normis", "--is", "--ir", "--bcir", "--wsnormis", "--incnormis", "--wsavgnormis",
+                "--vtrace", "--clip_value", "1.0"]
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),

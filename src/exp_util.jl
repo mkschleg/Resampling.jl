@@ -28,6 +28,9 @@ function algorithm_settings!(s::ArgParseSettings)
         "--wsnormis"
         action = :store_true
         help = "set to include base off-policy importance sampling"
+        "--wsavgnormis"
+        action = :store_true
+        help = "set to include base off-policy importance sampling"
         "--ir"
         action = :store_true
         help = "Set to include ir"
@@ -83,6 +86,11 @@ function build_algorithm_dict(parsed; max_is=1.0)
         value_type_dict["IncNormIS"] = "State"
     end
     if parsed["wsnormis"]
+        algo_dict["WSNormIS"] = WSNormIS()
+        sample_dict["WSNormIS"] = "ER"
+        value_type_dict["WSNormIS"] = "State"
+    end
+    if parsed["wsavgnormis"]
         algo_dict["WSNormIS"] = WSNormIS()
         sample_dict["WSNormIS"] = "ER"
         value_type_dict["WSNormIS"] = "State"

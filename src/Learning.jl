@@ -160,8 +160,8 @@ function update!(model, opt, lu::VTrace, ρ, s_t, s_tp1, r, γ, terminal; corr_t
 end
 
 function update!(model, opt, lu::VTrace, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0)  where {T<:AbstractFloat}
-    clamp_ρ = [clamp.(_ρ, T(0.0), T(lu.ρ_bar)) for _ρ in ρ]
-    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term)
+    clamp_ρ = [T.(clamp.(_ρ, T(0.0f0), T(lu.ρ_bar))) for _ρ in ρ]
+    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=T(corr_term))
 end
 
 mutable struct IncNormIS <: LearningUpdate
@@ -185,9 +185,9 @@ function update!(model, opt, lu::IncNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp
     end
     max_is = lu.max_is[model]
     for idx in 1:length(max_is)
-        max_is[idx] = max(max_is[idx], maximum(get.(ρ, idx)))
+        max_is[idx] = max(max_is[idx], maximum(getindex.(ρ, idx)))
     end
-    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./max_is)
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./max_is)
 end
 
 mutable struct WSNormIS <: LearningUpdate
@@ -204,9 +204,30 @@ function update!(model, opt, lu::WSNormIS, ρ, s_t, s_tp1, r, γ, terminal; corr
 end
 
 function update!(model, opt, lu::WSNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)  where {T<:AbstractFloat}
+    weighted_sum_is = get!(lu.weighted_sum_is, model, zeros(T, length(ρ[1])))
+    for idx in 1:length(weighted_sum_is)
+        weighted_sum_is[idx] = lu.beta*maximum(getindex.(ρ, idx))^2 + (1.0f0-lu.beta)*weighted_sum_is[idx]
+    end
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./sqrt.(weighted_sum_is))
+end
+
+mutable struct WSAvgNormIS <: LearningUpdate
+    beta::Float32
+    weighted_sum_is::IdDict
+    batch_td::BatchTD
+    WSAvgNormIS(beta::Float32=0.9f0) = new(beta, IdDict(), BatchTD())
+end
+
+function update!(model, opt, lu::WSAvgNormIS, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    get!(lu.weighted_sum_is, model, 0.0f0)::Float32
+    lu.weighted_sum_is[model] = Float32(lu.beta*mean(ρ)^2 + (1.0f0-lu.beta)*lu.weighted_sum_is[model])
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term/sqrt(lu.weighted_sum_is[model]))
+end
+
+function update!(model, opt, lu::WSAvgNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)  where {T<:AbstractFloat}
     weighted_sum_is = get!(lu.weighted_sum_is, model, zeros(T, length(ρ[1])))::type(Array{T, 1})
     for idx in 1:length(max_is)
-        weighted_sum_is[idx] = lu.beta*maximum(get.(ρ, idx))^2 + (1.0f0-lu.beta)*weighted_sum_is[idx]
+        weighted_sum_is[idx] = lu.beta*mean(getindex.(ρ, idx))^2 + (1.0f0-lu.beta)*weighted_sum_is[idx]
     end
     update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./sqrt.(weighted_sum_is))
 end
