@@ -1,3 +1,10 @@
+#!/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/gcc7.3/julia/1.1.0/bin/julia
+#SBATCH -o four_rooms_nn.out # Standard output
+#SBATCH -e four_rooms_nn.err # Standard error
+#SBATCH --mem-per-cpu=2000M # Memory request of 2 GB
+#SBATCH --time=6:00:00 # Running time of 6 hours
+#SBATCH --ntasks=32
+#SBATCH --account=def-whitem
 
 using Pkg
 Pkg.activate(".")

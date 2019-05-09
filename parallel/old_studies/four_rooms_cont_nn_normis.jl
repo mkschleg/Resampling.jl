@@ -1,3 +1,10 @@
+#!/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/gcc7.3/julia/1.1.0/bin/julia
+#SBATCH -o four_rooms_nn_norm_is.out # Standard output
+#SBATCH -e four_rooms_nn_norm_is.err # Standard error
+#SBATCH --mem-per-cpu=2000M # Memory request of 2 GB
+#SBATCH --time=12:00:00 # Running time of 1 day
+#SBATCH --ntasks=64
+#SBATCH --account=def-whitem
 
 using Pkg
 Pkg.activate(".")
@@ -13,7 +20,8 @@ const alphas = [0.0001, 0.001, 0.01, 0.1]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [1, 8, 16]
-const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64]
+# const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64]
+const train_gaps = [80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
 const buffersize = 15000
 const numsteps = 250000
