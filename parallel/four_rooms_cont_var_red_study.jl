@@ -1,3 +1,10 @@
+#!/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/gcc7.3/julia/1.1.0/bin/julia
+#SBATCH -o four_rooms_var_red.out # Standard output
+#SBATCH -e four_rooms_var_red.err # Standard error
+#SBATCH --mem-per-cpu=2000M # Memory request of 2 GB
+#SBATCH --time=12:00:00 # Running time of 6 hours
+#SBATCH --ntasks=64
+#SBATCH --account=def-whitem
 
 using Pkg
 Pkg.activate(".")
@@ -9,7 +16,7 @@ const save_loc = "four_rooms_cont_exp_var_red_study"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
-const alphas = [collect(0.0:0.025:0.5)]
+const alphas = collect(0.0:0.025:0.5)
 const policies = ["uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [8, 16]
