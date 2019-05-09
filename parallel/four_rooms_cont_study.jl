@@ -1,3 +1,10 @@
+#!/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/gcc7.3/julia/1.1.0/bin/julia
+#SBATCH -o four_rooms_norm_is.out # Standard output
+#SBATCH -e four_rooms_norm_is.err # Standard error
+#SBATCH --mem-per-cpu=2000M # Memory request of 2 GB
+#SBATCH --time=4:00:00 # Running time of 6 hours
+#SBATCH --ntasks=32
+#SBATCH --account=def-whitem
 
 using Pkg
 Pkg.activate(".")
@@ -5,15 +12,17 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "four_rooms_sweep"
-const exp_file = "experiment/four_rooms.jl"
-const exp_module_name = :FourRoomsExperiment
+const save_loc = "four_rooms_cont_exp_var_red_study"
+const exp_file = "experiment/four_rooms_cont.jl"
+const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
-const alphas = collect(0.0:0.05:1.0)
-const policies = ["random_state_variant", "favor_down"]
-const gvfs = ["down", "favored_down"]
-const batchsizes = [1, 8, 16, 32]
-const train_gaps = [1, 2, 3, 4, 6, 8, 16, 24, 32, 64]
+# const alphas = collect(0.0:0.05:1.0)
+const alphas = [collect(0.0:0.01:0.1)..., 0.2, 0.3, 0.4, 0.5, 0.75, 1.0]
+const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
+const gvfs = ["collide_down", "favored_down"]
+const batchsizes = [1, 8, 16]
+const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
+# const train_gaps = [80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
 const buffersize = 15000
 const numsteps = 250000
@@ -23,7 +32,8 @@ function make_arguments(args::Dict{String, String})
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
-              "--run", args["run"]]
+              "--run", args["run"],
+              "--alphas", string.(alphas./parse(Int64, args["batchsize"]))...]
     return new_args
 end
 
@@ -54,19 +64,19 @@ function main()
         "run"=>1:parsed["numruns"]
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
-    alg_list = ["--is",
-                "--ir", "--bcir",
-                "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0",
-                "--sarsa",
-                "--wisbatch", "--wisbuffer"]
+
+    alg_list = ["--normis", "--ir", "--incnormis", "--wsnormis", "--wisbatch",
+                "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
+
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),
                     "--buffersize", string(buffersize),
                     "--seed", "0",
                     "--numinter", string(numsteps),
-                    "--compress",
-                    "--alphas"]; string.(alphas)]
+                    "--eval_points", "100",
+                    "--eval_steps", "100",
+                    "--compress"]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
     if parsed["numjobs"]

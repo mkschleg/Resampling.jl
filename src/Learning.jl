@@ -71,10 +71,10 @@ update!(model, opt, lu::LearningUpdate, ρ, s_t, s_tp1, r, γ, terminal, a_t, a_
 
 mutable struct BatchTD <: LearningUpdate end
 
-function update!(model, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+function update!(model, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)
     v_t = model.(s_t)
     v_tp1 = model.(s_tp1)
-    loss = offpolicy_tdloss(ρ, v_t, r, γ, Flux.data.(v_tp1))
+    loss = offpolicy_tdloss(ρ.*corr_term, v_t, r, γ, Flux.data.(v_tp1))
     grads = Flux.gradient(()->loss, params(model))
     for weights in params(model)
         Flux.Optimise.update!(opt, weights, grads[weights])
@@ -87,7 +87,7 @@ function update!(model::SingleLayer, opt, lu::BatchTD, ρ, s_t, s_tp1, r, γ, te
     dvdt = deriv.(model, s_t)
     δ = ρ.*tderror(v_t, r, γ, v_tp1)
     Δ = mean(δ.*dvdt.*s_t)
-    model.W .+= -apply!(opt, model.W, corr_term*Δ)
+    model.W .+= -Flux.Optimise.apply!(opt, model.W, corr_term*Δ)
 end
 
 function update!(model::SparseLayer, opt::Descent, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
@@ -100,6 +100,26 @@ function update!(model::SparseLayer, opt::Descent, lu::BatchTD, ρ, s_t, s_tp1, 
     for i in 1:length(ρ)
         model.W[s_t[i]] .-= opt.eta*corr_term*Δ[i]
     end
+end
+
+function update!(model::SparseLayer, opt::RMSProp, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    v_t = model.(s_t)
+    v_tp1 = model.(s_tp1)
+
+    dvdt = [deriv(model, s) for s in s_t]
+    δ = ρ.*tderror(v_t, r, γ, v_tp1)
+    fill!(model.ϕ, 0.0f0)
+    Δ = δ.*dvdt.*1//length(ρ)
+    for i in 1:length(ρ)
+        model.ϕ[s_t[i]] .+= corr_term*Δ[i]
+    end
+    feats = unique(collect(Iterators.flatten(s_t)))
+
+    acc = get!(opt.acc, model.W, zero(model.W))::typeof(model.W)
+    acc .*= opt.rho
+    acc[feats] .+= (1-opt.rho) .* model.ϕ[feats].^2
+    model.W[feats] .-= model.ϕ[feats].*(opt.eta./sqrt.(acc[feats] .+ 1e-8))
+
 end
 
 function update!(model::TabularLayer, opt::Descent, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
@@ -119,13 +139,13 @@ mutable struct WISBatchTD <: LearningUpdate
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
-    wis_avg = mean(ρ)
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_avg)*corr_term)
+    wis_sum = sum(ρ)
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_sum)*corr_term)
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0) where {T<:AbstractArray}
-    wis_avg = mean(mean(ρ))
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0./wis_avg)*corr_term)
+    wis_sum = sum(ρ)
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(corr_term./wis_sum))
 end
 
 
@@ -142,6 +162,53 @@ end
 function update!(model, opt, lu::VTrace, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0)  where {T<:AbstractFloat}
     clamp_ρ = [clamp.(_ρ, T(0.0), T(lu.ρ_bar)) for _ρ in ρ]
     update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term)
+end
+
+mutable struct IncNormIS <: LearningUpdate
+    max_is::IdDict
+    batch_td::BatchTD
+    IncNormIS() = new(IdDict(), BatchTD())
+end
+
+function update!(model, opt, lu::IncNormIS, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    if !(model ∈ keys(lu.max_is))
+        lu.max_is[model] = 1.0f0
+    end
+    max_is = max(lu.max_is[model], maximum(ρ))
+    lu.max_is[model] = max_is
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term/max_is)
+end
+
+function update!(model, opt, lu::IncNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)  where {T<:AbstractFloat}
+    if !(model ∈ keys(lu.max_is))
+        lu.max_is[model] = ones(T, length(ρ[1]))
+    end
+    max_is = lu.max_is[model]
+    for idx in 1:length(max_is)
+        max_is[idx] = max(max_is[idx], maximum(get.(ρ, idx)))
+    end
+    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./max_is)
+end
+
+mutable struct WSNormIS <: LearningUpdate
+    beta::Float32
+    weighted_sum_is::IdDict
+    batch_td::BatchTD
+    WSNormIS(beta::Float32=0.9f0) = new(beta, IdDict(), BatchTD())
+end
+
+function update!(model, opt, lu::WSNormIS, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    get!(lu.weighted_sum_is, model, 0.0f0)::Float32
+    lu.weighted_sum_is[model] = Float32(lu.beta*maximum(ρ)^2 + (1.0f0-lu.beta)*lu.weighted_sum_is[model])
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term/sqrt(lu.weighted_sum_is[model]))
+end
+
+function update!(model, opt, lu::WSNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0f0)  where {T<:AbstractFloat}
+    weighted_sum_is = get!(lu.weighted_sum_is, model, zeros(T, length(ρ[1])))::type(Array{T, 1})
+    for idx in 1:length(max_is)
+        weighted_sum_is[idx] = lu.beta*maximum(get.(ρ, idx))^2 + (1.0f0-lu.beta)*weighted_sum_is[idx]
+    end
+    update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./sqrt.(weighted_sum_is))
 end
 
 """

@@ -22,6 +22,12 @@ function algorithm_settings!(s::ArgParseSettings)
         "--normis"
         action = :store_true
         help = "set to include base off-policy importance sampling"
+        "--incnormis"
+        action = :store_true
+        help = "set to include base off-policy importance sampling"
+        "--wsnormis"
+        action = :store_true
+        help = "set to include base off-policy importance sampling"
         "--ir"
         action = :store_true
         help = "Set to include ir"
@@ -71,6 +77,16 @@ function build_algorithm_dict(parsed; max_is=1.0)
         sample_dict["NormIS"] = "ER"
         value_type_dict["NormIS"] = "State"
     end
+    if parsed["incnormis"]
+        algo_dict["IncNormIS"] = IncNormIS()
+        sample_dict["IncNormIS"] = "ER"
+        value_type_dict["IncNormIS"] = "State"
+    end
+    if parsed["wsnormis"]
+        algo_dict["WSNormIS"] = WSNormIS()
+        sample_dict["WSNormIS"] = "ER"
+        value_type_dict["WSNormIS"] = "State"
+    end
     if parsed["ir"]
         algo_dict["IR"] = BatchTD()
         sample_dict["IR"] = "IR"
@@ -93,7 +109,6 @@ function build_algorithm_dict(parsed; max_is=1.0)
     end
 
     if parsed["wisoptimal"]
-        # algo_dict["WISOptimal"] = BatchTD(0.1, parsed["batchsize"], 1.0/sum_is)
         algo_dict["WISOptimal"] = WISBatchTD()
         sample_dict["WISOptimal"] = "Optimal"
         value_type_dict["WISOptimal"] = "State"

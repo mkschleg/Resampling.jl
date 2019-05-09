@@ -6,10 +6,11 @@ import Flux: Descent
 """
     Agent for learning online in the four rooms environment.
 """
-mutable struct TCFourRoomsContAgent{P<:Resampling.AbstractPolicy} <: JuliaRL.AbstractAgent
+mutable struct TCFourRoomsContAgent{O, P<:Resampling.AbstractPolicy} <: JuliaRL.AbstractAgent
     μ::P
     ER::ExperienceReplay
     WER::WeightedExperienceReplay
+    opt::O
     tilecoder::TileCoder
     gvf::GVF
     training_gap::Int64
@@ -24,9 +25,9 @@ mutable struct TCFourRoomsContAgent{P<:Resampling.AbstractPolicy} <: JuliaRL.Abs
     action_t::Int64
     α_arr::Array{Float64, 1}
     max_is::Float64
-    function TCFourRoomsContAgent(μ::P, gvf::GVF, num_tilings, num_tiles, α_arr::Array{Float64, 1},
+    function TCFourRoomsContAgent(μ::P, gvf::GVF, opt::O, num_tilings, num_tiles, α_arr::Array{Float64, 1},
                                   training_gap, buffer_size, batch_size,
-                                  warm_up, parsed, env_size; max_is_ratio=1.0) where {P<:Resampling.AbstractPolicy}
+                                  warm_up, parsed, env_size; max_is_ratio=1.0) where {O, P<:Resampling.AbstractPolicy}
 
         # build tile coder....
         tilecoder = TileCoder(num_tilings, num_tiles, 2)
@@ -45,9 +46,9 @@ mutable struct TCFourRoomsContAgent{P<:Resampling.AbstractPolicy} <: JuliaRL.Abs
         er_types = [state_type, state_type, Int64, Int64, Float64, Float64, Bool, Float64, Float64, Float64]
         ER = ExperienceReplay(buffer_size, er_types; column_names=er_names)
         WER = WeightedExperienceReplay(buffer_size, er_types; column_names=er_names)
-        new{P}(μ, ER, WER, tilecoder, gvf, training_gap, buffer_size, batch_size, warm_up,
-               algo_dict, sample_dict, value_dict, warm_up, ([0.0,0.0], false), 0, α_arr,
-               max_is_ratio)
+        new{O, P}(μ, ER, WER, opt, tilecoder, gvf, training_gap, buffer_size, batch_size, warm_up,
+                  algo_dict, sample_dict, value_dict, warm_up, ([0.0,0.0], false), 0, α_arr,
+                  max_is_ratio)
     end
 end
 
@@ -102,28 +103,28 @@ function train_value_functions(agent::TCFourRoomsContAgent; rng=Random.GLOBAL_RN
                samp_er[:a_t], samp_wer[:a_tp1], agent.gvf.policy)
 
     for (α_idx, α) in enumerate(α_arr)
-        opt = Descent(α)
+        agent.opt.eta = α
         for key in keys(agent.algo_dict)
             if agent.sample_dict[key] == "IR"
                 corr_term = 1.0
                 if key == "BCIR"
                     corr_term = Resampling.total(agent.WER)/size(agent.WER)[1]
                 end
-                update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_wer...; corr_term=corr_term)
+                update!(agent.value_dict[key][α_idx], agent.opt, agent.algo_dict[key], arg_wer...; corr_term=corr_term)
             elseif agent.sample_dict[key] == "ER"
                 if key == "WISBuffer"
                     corr_term = Resampling.total(agent.WER)/size(agent.WER)[1]
-                    update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er...; corr_term=1.0/corr_term)
+                    update!(agent.value_dict[key][α_idx], agent.opt, agent.algo_dict[key], arg_er...; corr_term=1.0/corr_term)
                 elseif key == "NormIS"
-                    update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er[1]./agent.max_is, arg_er[2:end]...;)
+                    update!(agent.value_dict[key][α_idx], agent.opt, agent.algo_dict[key], arg_er[1]./agent.max_is, arg_er[2:end]...;)
                 else
-                    update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er...;)
+                    update!(agent.value_dict[key][α_idx], agent.opt, agent.algo_dict[key], arg_er...;)
                 end
             elseif agent.sample_dict[key] == "Optimal"
                 samp_opt = agent.ER.buffer
                 arg_opt = (samp_opt[:ρ], samp_opt[:s_t], samp_opt[:s_tp1],
                            samp_opt[:r], samp_opt[:γ_tp1], samp_opt[:terminal])
-                update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_opt...;)
+                update!(agent.value_dict[key][α_idx], agent.opt, agent.algo_dict[key], arg_opt...;)
             end
         end
     end
