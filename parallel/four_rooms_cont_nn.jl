@@ -22,7 +22,7 @@ function make_arguments(args::Dict{String, String})
     new_args=["--policy", args["policy"],
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
-              "--batchsize", args["batchsize"],
+              "--batchsize", args["batchsinze"],
               "--optparams", args["alpha"],
               "--run", args["run"]]
     return new_args
@@ -66,8 +66,8 @@ function main()
                     "--eval_points", "100",
                     "--eval_steps", "100",
                     "--opt", "RMSProp",
-                    "--compress",
-                    "--alphas"]; string.(collect(alphas))]
+                    "--compress"]
+                    # "--alphas"]; string.(collect(alphas))]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
     if parsed["numjobs"]
