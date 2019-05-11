@@ -91,9 +91,9 @@ function build_algorithm_dict(parsed; max_is=1.0)
         value_type_dict["WSNormIS"] = "State"
     end
     if parsed["wsavgnormis"]
-        algo_dict["WSNormIS"] = WSNormIS()
-        sample_dict["WSNormIS"] = "ER"
-        value_type_dict["WSNormIS"] = "State"
+        algo_dict["WSAvgNormIS"] = WSNormIS()
+        sample_dict["WSAvgNormIS"] = "ER"
+        value_type_dict["WSAvgNormIS"] = "State"
     end
     if parsed["ir"]
         algo_dict["IR"] = BatchTD()
