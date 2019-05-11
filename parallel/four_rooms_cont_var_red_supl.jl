@@ -10,11 +10,11 @@ const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
 const alphas = [collect(0.0:0.01:0.1)..., 0.2, 0.3, 0.4, 0.5, 0.75, 1.0]
-const policies = ["random_state_variant", "random_state_weight_variant"]
+const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [8, 16]
-# const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
-const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 128, 256]
+const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
+# const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 128, 256]
 const warm_up = 1000
 const buffersize = 15000
 const numsteps = 250000
@@ -38,7 +38,7 @@ function main()
         default=1
         "--numruns"
         arg_type=Int64
-        default=10
+        default=25
         "--saveloc"
         arg_type=String
         default=save_loc
@@ -57,7 +57,8 @@ function main()
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
 
-    alg_list = ["--normis", "--ir", "--incnormis", "--wsnormis", "--wisbatch",
+    alg_list = ["--normis", "--ir", "--incnormis",
+                "--wsnormis", "--wsavgnormis", "--wisbatch",
                 "--vtrace", "--clip_value", "1.0"]
 
     static_args = [alg_list;
