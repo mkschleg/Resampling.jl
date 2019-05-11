@@ -10,9 +10,9 @@ const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
 const alphas = [0.0, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
-const policies = ["random_state_variant", "random_state_weight_variant"]
+const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
-const batchsizes = [8, 16]
+const batchsizes = [16]
 const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
 # const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 128, 256]
 const warm_up = 1000
@@ -58,7 +58,8 @@ function main()
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "alpha", "run"]
 
-    alg_list = ["--normis", "--ir", "--incnormis", "--wsnormis", "--wisbatch",
+    alg_list = ["--normis", "--is", "--ir", "--incnormis", "--wsnormis",
+                "--wsavgnormis", "--wisbatch",
                 "--vtrace", "--clip_value", "1.0"]
 
     static_args = [alg_list;
