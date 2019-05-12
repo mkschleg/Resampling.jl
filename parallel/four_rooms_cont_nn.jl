@@ -64,7 +64,7 @@ function main()
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "alpha", "run"]
     alg_list = ["--normis", "--is", "--ir", "--bcir", "--wsnormis", "--incnormis", "--wsavgnormis",
-                "wisbatch", "--vtrace", "--clip_value", "1.0"]
+                "--wisbatch", "--vtrace", "--clip_value", "1.0"]
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),
