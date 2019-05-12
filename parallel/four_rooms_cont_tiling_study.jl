@@ -24,7 +24,7 @@ const train_gaps = [1, 32, 64, 128, 256]
 const tilings_tiles = [(1, 111), (8, 64), (32, 16), (64, 8)]
 const warm_up = 1000
 const buffersize = 15000
-const numsteps = 2500
+const numsteps = 250000
 
 function make_arguments(args::Dict{String, String})
 
