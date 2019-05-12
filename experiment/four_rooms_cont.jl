@@ -98,7 +98,7 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
         default=64
         "--tiles"
         arg_type=Int64
-        defaults=8
+        default=8
     end
 
     algorithm_settings!(as)
