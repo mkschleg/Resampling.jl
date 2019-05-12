@@ -139,12 +139,12 @@ mutable struct WISBatchTD <: LearningUpdate
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
-    wis_sum = sum(ρ)
+    wis_sum = sum(ρ) + 1e-8
     update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_sum)*corr_term)
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0) where {T<:AbstractArray}
-    wis_sum = sum(ρ)
+    wis_sum = sum(ρ) + 1e-8
     update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(corr_term./wis_sum))
 end
 
