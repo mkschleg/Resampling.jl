@@ -13,10 +13,11 @@ import ..build_algorithm_dict
 include("FourRoomsCont/policies.jl")
 
 export
-    TCFourRoomsContAgent, NNFourRoomsContAgent,
+    TCFourRoomsContAgent, NNFourRoomsContAgent, IntFourRoomsContAgent,
     predict, predict!
 
 include("FourRoomsCont/agent.jl")
+include("FourRoomsCont/int_agent.jl")
 include("FourRoomsCont/nn_agent.jl")
 
 include("FourRoomsCont/dmu.jl")

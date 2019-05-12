@@ -104,11 +104,19 @@ UniformRandomPolicy(num_actions::Integer) = RandomPolicy(fill(1.0/num_actions, n
 FavoredRandomPolicy(num_actions::Integer, favored_action::Integer, favored_prob::T) where {T<:AbstractFloat} =
     RandomPolicy([ act == favored_action ? favored_prob : (T(1.0) - favored_prob)/(num_actions-1) for act in 1:num_actions])
 
-
-
 Base.get(π::RandomPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) = π.probabilities[action_t]
 
 StatsBase.sample(rng::Random.AbstractRNG, π::RandomPolicy, state=nothing) = StatsBase.sample(rng, 1:length(π.weight_vec), π.weight_vec)
+
+struct InterpolationPolicy{P<:AbstractPolicy, M<:AbstractPolicy} <: AbstractPolicy
+    beta::Float64
+    policy_1::P
+    policy_2::M
+end
+
+Base.get(π::InterpolationPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) =
+    β*Base.get(π.policy_1, state_t, action_t, state_tp1, action_tp1, preds_tp1) +
+    (1.0-β)*Base.get(π.policy_2, state_t, action_t, state_tp1, action_tp1, preds_tp1)
 
 struct FunctionalPolicy{F} <: AbstractPolicy
     func::F

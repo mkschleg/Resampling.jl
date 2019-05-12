@@ -23,6 +23,7 @@ export
     PersistentPolicy,
     RandomPolicy,
     UniformRandomPolicy,
+    InterpolationPolicy,
     FavoredRandomPolicy
 
 include("GVF.jl")
