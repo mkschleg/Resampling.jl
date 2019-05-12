@@ -12,7 +12,7 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "four_rooms_cont_exp_var_red_study"
+const save_loc = "four_rooms_cont_exp_tiled_study"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
@@ -24,16 +24,19 @@ const train_gaps = [1, 32, 64, 128, 256]
 const tilings_tiles = [(1, 111), (8, 64), (32, 16), (64, 8)]
 const warm_up = 1000
 const buffersize = 15000
-const numsteps = 250000
+const numsteps = 2500
 
 function make_arguments(args::Dict{String, String})
+
+    ttt = split(strip(args["tilings_tiles"], ['(', ')']), ",")
+
     new_args=["--policy", args["policy"],
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
               "--run", args["run"],
-              "--tilings", args["tilings_tiles"][1],
-              "--tiles", args["tilings_tiles"][2],
+              "--tilings", string(ttt[1]),
+              "--tiles", string(ttt[2]),
               "--alphas", string.(alphas)...]
     return new_args
 end
