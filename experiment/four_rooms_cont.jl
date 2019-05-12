@@ -92,6 +92,15 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
         required=true
     end
 
+    @add_arg_table as begin
+        "--tilings"
+        arg_type=Int64
+        default=64
+        "--tiles"
+        arg_type=Int64
+        defaults=8
+    end
+
     algorithm_settings!(as)
     env_settings!(as)
 
@@ -134,7 +143,7 @@ function main_experiment(args::Vector{String})
     eval_states = FourRoomsContUtil.sample_according_to_dmu(env, parsed["policy"], parsed["eval_points"]; rng=rng)
     eval_rets = [mean(Resampling.MonteCarloReturn(env, gvf, start_state, 100; rng=rng)) for start_state in eval_states]
     opt = getproperty(Flux, Symbol(parsed["opt"]))()
-    agent = TCFourRoomsContAgent(μ, gvf, opt, 64, 8, α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env);
+    agent = TCFourRoomsContAgent(μ, gvf, opt, parsed["tilings"], parsed["tiles"], α_arr, train_gap, buffer_size, batch_size, warm_up, parsed, size(env);
                                  max_is_ratio=max_is_ratio)
 
     error_dict = Dict{String, Array{Float64}}()
