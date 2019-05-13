@@ -17,11 +17,11 @@ const exp_file = "experiment/four_rooms_cont_int.jl"
 const exp_module_name = :FourRoomsContIntExperiment
 const exp_func_name = :main_experiment
 const alphas = collect(0.0:0.01:0.9)
-const betas = collect(0.0:0.05:1.0)
+const betas = collect(0.0:0.1:1.0)
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [16]
-const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
+const train_gaps = [1, 2, 3, 4, 8, 16, 32, 48, 64, 128, 192, 256]
 const warm_up = 1000
 const buffersize = 15000
 const numsteps = 250000
@@ -46,7 +46,7 @@ function main()
         default=1
         "--numruns"
         arg_type=Int64
-        default=25
+        default=10
         "--saveloc"
         arg_type=String
         default=save_loc
