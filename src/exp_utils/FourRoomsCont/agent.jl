@@ -100,7 +100,7 @@ function train_value_functions(agent::TCFourRoomsContAgent; rng=Random.GLOBAL_RN
 
     arg_wer = (ones(length(samp_wer[:ρ])), samp_wer[:s_t], samp_wer[:s_tp1],
                samp_wer[:r], samp_wer[:γ_tp1], samp_wer[:terminal],
-               samp_er[:a_t], samp_wer[:a_tp1], agent.gvf.policy)
+               samp_wer[:a_t], samp_wer[:a_tp1], agent.gvf.policy)
 
     for (α_idx, α) in enumerate(α_arr)
         agent.opt.eta = α

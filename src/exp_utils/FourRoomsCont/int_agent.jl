@@ -36,7 +36,7 @@ mutable struct IntFourRoomsContAgent{O, M<:Resampling.AbstractPolicy, P<:Resampl
         state_type = Array{Int64, 1}
         er_types = [state_type, state_type, Int64, Int64, Float64, Float64, Bool, Float64, Float64, Float64]
         WER = WeightedExperienceReplay(buffer_size, er_types; column_names=er_names)
-        new{O, M, P}(μ, sample_policy, WER, opt, tilecoder, value_array, Resampling.BatchTD(),
+        new{O, M, P}(μ, sample_policy, WER, opt, tilecoder, value_arr, Resampling.BatchTD(),
                      gvf, training_gap, buffer_size, batch_size, warm_up,
                      warm_up, ([0.0,0.0], false), 0, α_arr, max_is_ratio)
     end
@@ -56,7 +56,7 @@ function JuliaRL.step!(agent::IntFourRoomsContAgent, env_s_tp1, r, terminal; rng
 
     # After taking action at timestep t
     μ_prob = get(agent.μ, agent.state_t[1], agent.action_t, nothing, nothing, nothing)
-    sample_prop = get(agent.sample_policy, agent.state_t[1], agent.action_t, nothing, nothing, nothing)
+    sample_prob = get(agent.sample_policy, agent.state_t[1], agent.action_t, nothing, nothing, nothing)
     c, γ, π_prob = get(agent.gvf, agent.state_t, agent.action_t, env_s_tp1, nothing, nothing)
     action_tp1 = JuliaRL.get_action(agent, agent.state_t; rng=rng)
 
@@ -84,17 +84,13 @@ function train_value_functions(agent::IntFourRoomsContAgent; rng=Random.GLOBAL_R
     # samp_er = sample(agent.ER, agent.batch_size; rng=rng)
     samp_wer = sample(agent.WER, agent.batch_size; rng=rng)
 
-    # arg_er = (samp_er[:ρ], samp_er[:s_t], samp_er[:s_tp1],
-    #           samp_er[:r], samp_er[:γ_tp1], samp_er[:terminal],
-    #           samp_er[:a_t], samp_er[:a_tp1], agent.gvf.policy)
-
     arg_wer = (samp_wer[:ρ], samp_wer[:s_t], samp_wer[:s_tp1],
                samp_wer[:r], samp_wer[:γ_tp1], samp_wer[:terminal],
-               samp_er[:a_t], samp_wer[:a_tp1], agent.gvf.policy)
+               samp_wer[:a_t], samp_wer[:a_tp1], agent.gvf.policy)
 
     for (α_idx, α) in enumerate(α_arr)
         agent.opt.eta = α
-        update!(agent.value_dict[key][α_idx], agent.opt, agent.algo, arg_wer...; corr_term=1.0)
+        update!(agent.value_arr[α_idx], agent.opt, agent.lu, arg_wer...; corr_term=1.0)
     end
 end
 
@@ -108,7 +104,7 @@ function predict!(agent::IntFourRoomsContAgent, eval_states::Array{Array{Float64
     states = [create_features(agent.tilecoder, eval_state./11.0) for eval_state in eval_states]
     if length(predict_arr) == 0
         for i in 1:length(agent.α_arr)
-            push!(predict_arr, [zeros(length(eval_states)) for i in 1:length(agent.α_arr)])
+            push!(predict_arr, zeros(length(eval_states)))
         end
     end
     for α_idx in 1:length(agent.α_arr)
