@@ -115,8 +115,8 @@ struct InterpolationPolicy{P<:AbstractPolicy, M<:AbstractPolicy} <: AbstractPoli
 end
 
 Base.get(π::InterpolationPolicy, state_t, action_t, state_tp1, action_tp1, preds_tp1) =
-    β*Base.get(π.policy_1, state_t, action_t, state_tp1, action_tp1, preds_tp1) +
-    (1.0-β)*Base.get(π.policy_2, state_t, action_t, state_tp1, action_tp1, preds_tp1)
+    π.beta*Base.get(π.policy_1, state_t, action_t, state_tp1, action_tp1, preds_tp1) +
+    (1.0-π.beta)*Base.get(π.policy_2, state_t, action_t, state_tp1, action_tp1, preds_tp1)
 
 struct FunctionalPolicy{F} <: AbstractPolicy
     func::F
