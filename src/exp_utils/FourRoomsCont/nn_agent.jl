@@ -121,7 +121,7 @@ function train_value_functions(agent::NNFourRoomsContAgent; rng=Random.GLOBAL_RN
 
     # opt = Descent(α)
     for key in filter((k)->agent.to_update[k], keys(agent.algo_dict))
-        try
+        # try
             if agent.sample_dict[key] == "IR"
                 corr_term = 1.0
                 if key == "BCIR"
@@ -143,14 +143,18 @@ function train_value_functions(agent::NNFourRoomsContAgent; rng=Random.GLOBAL_RN
                            samp_opt[:r], samp_opt[:γ_tp1], samp_opt[:terminal])
                 update!(agent.value_dict[key], opt, agent.algo_dict[key], arg_opt...;)
             end
-        catch ex
-            println(ex)
-            if ex.msg == "Loss is infinite" || ex.msg == "Loss is NaN"
-                agent.to_update[key] = false
-            else
-                throw(ex)
-            end
-        end
+        # catch ex
+        #     println(ex)
+        #     try
+        #         if ex.msg == "Loss is infinite" || ex.msg == "Loss is NaN"
+        #             agent.to_update[key] = false
+        #         else
+        #             throw(ex)
+        #         end
+        #     catch
+        #         throw(ex)
+        #     end
+        # end
     end
 end
 

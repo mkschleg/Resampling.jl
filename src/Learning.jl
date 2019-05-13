@@ -144,8 +144,9 @@ function update!(model, opt, lu::WISBatchTD, ρ, s_t, s_tp1, r, γ, terminal; co
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0) where {T<:AbstractArray}
-    wis_sum = sum(ρ) + 1e-8
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(corr_term./wis_sum))
+    wis_sum = (sum(ρ) .+ 1e-8)
+    # println(typeof(wis_sum))
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=T(corr_term./wis_sum))
 end
 
 
