@@ -273,6 +273,18 @@ function update!(model::TabularLayer, opt::Descent, lu::BatchSarsa, ρ, s_t::Arr
     end
 end
 
+function update!(model::TabularLayer, opt::Descent, lu::BatchSarsa, ρ, s_t::Array{Int64, 1}, s_tp1::Array{Int64, 1}, r, γ, terminal, a_t, a_tp1, target_policy; corr_term=1.0)
+
+    cis_t = [CartesianIndex(act, s_t[idx]...) for (idx, act) in enumerate(a_t)]
+    q_t = model.(cis_t)
+    q_tp1 = [model(CartesianIndex(act, s_tp1[idx]...)) for (idx, act) in enumerate(a_tp1)]
+    δ = tderror(q_t, r, γ, q_tp1)
+    Δ = corr_term.*δ.*(1.0/length(q_t))
+    for (ci_idx, ci) in enumerate(cis_t)
+        model[ci] -= opt.eta*Δ[ci_idx]
+    end
+end
+
 mutable struct BatchExpectedSarsa <: LearningUpdate end
 
 function update!(model, opt, lu::BatchExpectedSarsa, ρ, s_t, s_tp1, r, γ, terminal, a_t, a_tp1, target_policy; corr_term=1.0)
@@ -294,6 +306,16 @@ function update!(model::SingleLayer, opt, lu::BatchExpectedSarsa, ρ, s_t, s_tp1
 end
 
 function update!(model::TabularLayer, opt::Descent, lu::BatchExpectedSarsa, ρ, s_t::Array{Array{Int64, 1}, 1}, s_tp1::Array{Array{Int64, 1}, 1}, r, γ, terminal, a_t, a_tp1, target_policy::Array{Float64, 1}; corr_term=1.0)
+    q_t = [model(CartesianIndex(act, s_t[idx]...)) for (idx, act) in enumerate(a_t)]
+    exp_q = [dot(target_policy, (model[:, s...])) for s in s_tp1]
+    δ = tderror(q_t, r, γ, exp_q)
+    Δ = corr_term.*δ.*(1.0/length(q_t))
+    for (s_idx, s) in enumerate(s_t)
+        model[a_t[s_idx], s...] -= opt.eta*Δ[s_idx]
+    end
+end
+
+function update!(model::TabularLayer, opt::Descent, lu::BatchExpectedSarsa, ρ, s_t::Array{Int64, 1}, s_tp1::Array{Int64, 1}, r, γ, terminal, a_t, a_tp1, target_policy::Array{Float64, 1}; corr_term=1.0)
     q_t = [model(CartesianIndex(act, s_t[idx]...)) for (idx, act) in enumerate(a_t)]
     exp_q = [dot(target_policy, (model[:, s...])) for s in s_tp1]
     δ = tderror(q_t, r, γ, exp_q)

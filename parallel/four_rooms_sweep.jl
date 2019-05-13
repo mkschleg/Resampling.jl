@@ -9,10 +9,10 @@ const save_loc = "four_rooms_sweep"
 const exp_file = "experiment/four_rooms.jl"
 const exp_module_name = :FourRoomsExperiment
 const exp_func_name = :main_experiment
-const alphas = collect(0.0:0.05:1.0)
+const alphas = collect(0.0:0.05:2.0)
 const policies = ["random_state_variant", "uniform"]
 const gvfs = ["down", "favored_down"]
-const batchsizes = [1, 8, 16, 32]
+const batchsizes = [16]
 const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
 const buffersize = 15000
@@ -23,7 +23,8 @@ function make_arguments(args::Dict{String, String})
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
-              "--run", args["run"]]
+              "--run", args["run"],
+              "--alphas", string.(alphas.* parse(Int64, args["batchsize"]))...]
     return new_args
 end
 
@@ -58,7 +59,7 @@ function main()
                 "--ir", "--bcir",
                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0",
                 "--sarsa",
-                "--wisbatch", "--wisbuffer"]
+                "--wisbatch", "--wisbuffer", "--wisoptimal"]
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),

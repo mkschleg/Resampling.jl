@@ -110,7 +110,8 @@ function main_experiment(args::Vector{String})
     local_err_iddict = IdDict()
     value_iddict = IdDict()
 
-    Threads.@threads for run in 1:num_runs
+    # Threads.@threads for run in 1:num_runs
+    for run in 1:num_runs
         value_dict = Dict{String, Array{Resampling.TabularLayer, 1}}()
         local_error_dict = Dict{String, Array{Float64}}()
         for key in keys(algo_dict)
@@ -131,7 +132,7 @@ function main_experiment(args::Vector{String})
         ER, WER = get_experience(buffer_size, μ, π; rng=rng, chain_size=chain_size)
         avg_is = Resampling.total(WER.sumtree)/buffer_size
 
-        for iter in 1:num_iterations
+        ProgressMeter.@showprogress 0.1 "Iter: " for iter in 1:num_iterations
             samp_er = sample(ER, batch_size; rng=rng)
             samp_wer = sample(WER, batch_size; rng=rng)
 
