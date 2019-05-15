@@ -9,7 +9,7 @@ const save_loc = "four_rooms_sweep"
 const exp_file = "experiment/four_rooms.jl"
 const exp_module_name = :FourRoomsExperiment
 const exp_func_name = :main_experiment
-const alphas = collect(0.0:0.05:2.0)
+const alphas = [[0.0, 0.001, 0.01]; collect(0.025:0.025:0.2); collect(0.25:0.05:1.0); collect(1.25:0.25:2.0)]
 const policies = ["random_state_variant", "uniform"]
 const gvfs = ["down", "favored_down"]
 const batchsizes = [16]
@@ -37,7 +37,7 @@ function main()
         default=1
         "--numruns"
         arg_type=Int64
-        default=10
+        default=25
         "--saveloc"
         arg_type=String
         default=save_loc
