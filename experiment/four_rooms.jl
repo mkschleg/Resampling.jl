@@ -155,7 +155,7 @@ function main_experiment(args::Vector{String})
                                  joinpath(save_loc, "results.jld2")),
                 Dict("results"=>results); compress=true)
         else
-            @save joinpath(save_loc, "results.jld2") error_dict
+            @save joinpath(save_loc, "results.jld2") results
         end
     end
 
