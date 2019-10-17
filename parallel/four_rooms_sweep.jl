@@ -59,7 +59,9 @@ function main()
                 "--ir", "--bcir",
                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0",
                 "--sarsa",
-                "--wisbatch", "--wisbuffer", "--wisoptimal"]
+                "--wisbatch", "--wisbuffer",
+                # "--wisoptimal"
+                ]
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
                     "--warm_up", string(warm_up),

@@ -34,38 +34,6 @@ WIP - Currently LearningUpdate and Optimizer are haphazardly similar....
 abstract type LearningUpdate end
 
 
-"""
-    train!(value, opt::Optimizer, lu::LearningUpdate, ρ, s_t, s_tp1, reward, γ, terminal)
-# Arguments:
-`value::ValueFunction`:
-`opt::Optimizer`:
-`ρ`: Importance sampling ratios (Array of Floats)
-`s_t`: States at time t
-`s_tp1`: States at time t + 1
-`reward`: cumulant or reward for value function
-`γ`: discount factor
-`terminal`: Determining termination of the episode (if applicable).
-"""
-# train!(value::AbstractVFunction, lu::LearningUpdate, ϕ_t, ϕ_tp1, reward, γ, ρ, terminal)
-
-"""
-    train!(value::ValueFunction, opt::Optimizer, lu::LearningUpdate, ρ, s_t, s_tp1, reward, γ, terminal, a_t, a_tp1, target_policy)
-# Arguments:
-`value::ValueFunction`:
-`opt::Optimizer`:
-`ρ`: Importance sampling ratios (Array of Floats)
-`s_t`: States at time t
-`s_tp1`: States at time t + 1
-`reward`: cumulant or reward for value function
-`γ`: discount factor
-`terminal`: Determining termination of the episode (if applicable).
-`a_t`: Action at time t
-`a_tp1`: Action at time t + 1
-`target_policy`: Action at time t
-"""
-
-# train!(value::AbstractQFunction, lu::LearningUpdate, ϕ_t, ϕ_tp1, reward, γ, ρ, terminal, a_t, a_tp1, target_policy)
-
 update!(model, opt, lu::LearningUpdate, ρ, s_t, s_tp1, r, γ, terminal, a_t, a_tp1, target_policy; corr_term=1.0) =
     update!(model, opt, lu::LearningUpdate, ρ, s_t, s_tp1, r, γ, terminal)
 
@@ -123,6 +91,7 @@ function update!(model::SparseLayer, opt::RMSProp, lu::BatchTD, ρ, s_t, s_tp1, 
 end
 
 function update!(model::TabularLayer, opt::Descent, lu::BatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    # println(model, s_t)
     v_t = model.(s_t)
     v_tp1 = model.(s_tp1)
     δ = ρ.*tderror(v_t, r, γ, v_tp1)
@@ -140,15 +109,22 @@ end
 
 function update!(model, opt, lu::WISBatchTD, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
     wis_sum = sum(ρ) + 1e-8
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_sum)*corr_term)
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=(1.0/wis_sum)*corr_term*length(ρ))
 end
 
 function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, terminal; corr_term=1.0) where {T<:AbstractArray}
     wis_sum = (sum(ρ) .+ 1e-8)
     # println(typeof(wis_sum))
-    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=T(corr_term./wis_sum))
+    update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=T(length(ρ)*corr_term./wis_sum))
 end
 
+# mutable struct WISBatchTD_Rupam <: LearningUpdate
+#     η::Float64
+#     u_vec::Array{Float64, 1}
+#     α::Array{Float64, 1}
+#     prev_θ::IdDict
+#     WISBatchTD_Rupam(η, s) = new(η, zeros(s), zeros(s), IdDict())
+# end
 
 mutable struct VTrace <: LearningUpdate
     ρ_bar::Float64
@@ -232,6 +208,7 @@ function update!(model, opt, lu::WSAvgNormIS, ρ::Array{Array{T, 1}, 1}, s_t, s_
     end
     update!(model, opt, lu.batch_td, clamp_ρ, s_t, s_tp1, r, γ, terminal; corr_term=corr_term./sqrt.(weighted_sum_is))
 end
+
 
 """
     All Q Learning algorithms are defined with multiple outputs, there is no cont action cases yet.

@@ -109,7 +109,7 @@ function train_value_functions(agent::FourRoomsAgent; rng=Random.GLOBAL_RNG)
             elseif agent.sample_dict[key] == "ER"
                 update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_er...;)
             elseif agent.sample_dict[key] == "Optimal"
-                samp_opt = agent.ER.buffer
+                samp_opt = Resampling.getrow(agent.ER.buffer, 1:size(agent.ER.buffer)[1])
                 arg_opt = (samp_opt[:ρ], samp_opt[:s_t], samp_opt[:s_tp1],
                            samp_opt[:r], samp_opt[:γ_tp1], samp_opt[:terminal])
                 update!(agent.value_dict[key][α_idx], opt, agent.algo_dict[key], arg_opt...;)
