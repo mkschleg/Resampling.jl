@@ -16,13 +16,8 @@ import ProgressMeter
 import StatsBase
 using JuliaRL.FeatureCreators
 
-function mase(preds, truth, args...)
+function mave(preds, truth, args...)
     return mean(abs.(preds .- truth))
-end
-
-function mase(model::Resampling.TabularLayer{Array{Float64, 3}}, truth, target_policy_matrix)
-    # println(size(model.W))
-    return @inbounds mean(abs.(sum(target_policy_matrix .* model.W; dims=1)[1,:,:]  .- truth))
 end
 
 function get_target_policy_matrix(env::FourRooms, μ::Resampling.AbstractPolicy)
@@ -151,7 +146,7 @@ function main_experiment(args::Vector{String})
         if (step-1)%parsed["eval_steps"] == 0
             predict!(agent, eval_states, predict_dict)
             for key in keys(agent.algo_dict)
-                error_dict[key][eval_step] = Float32(mase(predict_dict[key], eval_rets))
+                error_dict[key][eval_step] = Float32(mave(predict_dict[key], eval_rets))
             end
             eval_step += 1
         end

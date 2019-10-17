@@ -15,11 +15,11 @@ import Flux: Descent
 import ProgressMeter
 import StatsBase
 
-function mase(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, args...)
+function mave(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, args...)
     return mean(abs.(model.W .- truth))
 end
 
-function mase(model::Resampling.TabularLayer{Array{Float64, 3}}, truth, target_policy_matrix)
+function mave(model::Resampling.TabularLayer{Array{Float64, 3}}, truth, target_policy_matrix)
     # println(size(model.W))
     return @inbounds mean(abs.(sum(target_policy_matrix .* model.W; dims=1)[1,:,:]  .- truth))
 end
@@ -139,7 +139,7 @@ function main_experiment(args::Vector{String})
         # calculate error
         for key in keys(agent.algo_dict)
             for α_idx in eachindex(agent.α_arr)
-                error_dict[key][α_idx, step] = Float32(mase(agent.value_dict[key][α_idx], truth, target_policy_matrix))
+                error_dict[key][α_idx, step] = Float32(mave(agent.value_dict[key][α_idx], truth, target_policy_matrix))
             end
         end
     end
