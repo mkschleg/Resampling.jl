@@ -32,7 +32,8 @@ mutable struct TCFourRoomsContAgent{O, P<:Resampling.AbstractPolicy} <: JuliaRL.
         # build tile coder....
         tilecoder = TileCoder(num_tilings, num_tiles, 2)
         num_features = num_tilings*(num_tiles+1)^2
-        algo_dict, sample_dict, value_type_dict = build_algorithm_dict(parsed; max_is=max_is_ratio)
+        algo_dict, sample_dict, value_type_dict = build_algorithm_dict(parsed; max_is=max_is_ratio, size_features=num_features)
+        # println(algo_dict)
         value_dict = Dict{String, Array{Resampling.SparseLayer, 1}}()
         for key in keys(algo_dict)
             if value_type_dict[key] == "State"

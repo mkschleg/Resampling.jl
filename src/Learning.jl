@@ -122,7 +122,7 @@ mutable struct WISBatchTD_Rupam <: LearningUpdate
     u_vec::Array{Float64, 1}
     α::Array{Float64, 1}
     prev_model::IdDict
-    WISBatchTD_Rupam(η, s) = new(η, zeros(s), zeros(s), IdDict())
+    WISBatchTD_Rupam(s) = new(ones(s), zeros(s), IdDict())
 end
 
 
@@ -133,21 +133,34 @@ function update!(model::SparseLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t
     # δ = ρ.*tderror(v_t, r, γ, v_tp1)
     # Δ = δ.*dvdt.*1//length(ρ)
 
-    u_1 = one(lu.u_vec)
-    u_2 = one(lu.u_vec)
+    u_1 = zeros(length(lu.u_vec))
+    u_2 = zeros(length(lu.u_vec))
     for i in 1:length(ρ)
+        # u_1[s_t[i]] .+= 1 - opt.eta
         u_1[s_t[i]] .+= opt.eta
         u_2[s_t[i]] .+= ρ[i]
     end
 
-    lu.u_vec = (1 .- u_1.*(1//length(ρ))).*lu.u_vec + u_2.*(1//length(ρ))
 
-    δ = ρ.*tderror(v_t, r, γ, v_tp1)
-    Δ = δ.*1//legnth(ρ)
+    # lu.u_vec .= (u_1.*(1//length(ρ))).*lu.u_vec .+ u_2.*(1//length(ρ))
+    lu.u_vec .= ((1 .- u_1).*(1//length(ρ))).*lu.u_vec .+ u_2.*(1//length(ρ))
+    # lu.u_vec .= (1 .- u_1.*(1//length(ρ))).*lu.u_vec .+ u_2.*(1//length(ρ))
 
-    for i in 1:length(ρ)
-        model.W[s_t[i]] .-= corr_term*Δ[i] ./ lu.u_vec
+    # println(minimum(lu.u_vec), " ", maximum(lu.u_vec))
+    v_old = zero(v_t)
+    if model ∈ keys(lu.prev_model)
+        v_old = lu.prev_model[model].(s_t)
     end
+    δ = ρ.*(tderror(v_old, r, γ, v_tp1) + v_old - v_t)
+    Δ = δ.*1//length(ρ)
+    # @show v_t
+    # @show r
+    for i in 1:length(ρ)
+        # println(length(corr_term*Δ[i] ./ lu.u_vec[s_t[i]]))
+        model.W[s_t[i]] .-= corr_term*Δ[i] ./ lu.u_vec[s_t[i]]
+    end
+    # println(minimum(model.W), " ", maximum(model.W))
+    lu.prev_model[model] = deepcopy(model)
 end
 
 
