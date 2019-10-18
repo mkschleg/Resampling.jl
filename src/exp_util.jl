@@ -46,6 +46,9 @@ function algorithm_settings!(s::ArgParseSettings)
         "--wisoptimal"
         action = :store_true
         help = "Set to run wis optimal experiments"
+        "--wisrupam"
+        action = :store_true
+        help = "Set to run wis rupam experiments"
         "--sarsa"
         action = :store_true
         help = "Set to run sarsa"
@@ -114,6 +117,12 @@ function build_algorithm_dict(parsed; max_is=1.0)
         algo_dict["WISBuffer"] = BatchTD()
         sample_dict["WISBuffer"] = "ER"
         value_type_dict["WISBuffer"] = "State"
+    end
+
+    if parsed["wisoptimal"]
+        algo_dict["WISOptimal"] = WISBatchTD()
+        sample_dict["WISOptimal"] = "Optimal"
+        value_type_dict["WISOptimal"] = "State"
     end
 
     if parsed["wisoptimal"]

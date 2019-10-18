@@ -118,13 +118,38 @@ function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, 
     update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=T(length(ρ)*corr_term./wis_sum))
 end
 
-# mutable struct WISBatchTD_Rupam <: LearningUpdate
-#     η::Float64
-#     u_vec::Array{Float64, 1}
-#     α::Array{Float64, 1}
-#     prev_θ::IdDict
-#     WISBatchTD_Rupam(η, s) = new(η, zeros(s), zeros(s), IdDict())
-# end
+mutable struct WISBatchTD_Rupam <: LearningUpdate
+    u_vec::Array{Float64, 1}
+    α::Array{Float64, 1}
+    prev_model::IdDict
+    WISBatchTD_Rupam(η, s) = new(η, zeros(s), zeros(s), IdDict())
+end
+
+
+function update!(model::SparseLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+    v_t = model.(s_t)
+    v_tp1 = model.(s_tp1)
+    dvdt = [deriv(model, s) for s in s_t]
+    # δ = ρ.*tderror(v_t, r, γ, v_tp1)
+    # Δ = δ.*dvdt.*1//length(ρ)
+
+    u_1 = one(lu.u_vec)
+    u_2 = one(lu.u_vec)
+    for i in 1:length(ρ)
+        u_1[s_t[i]] .+= opt.eta
+        u_2[s_t[i]] .+= ρ[i]
+    end
+
+    lu.u_vec = (1 .- u_1.*(1//length(ρ))).*lu.u_vec + u_2.*(1//length(ρ))
+
+    δ = ρ.*tderror(v_t, r, γ, v_tp1)
+    Δ = δ.*1//legnth(ρ)
+
+    for i in 1:length(ρ)
+        model.W[s_t[i]] .-= corr_term*Δ[i] ./ lu.u_vec
+    end
+end
+
 
 mutable struct VTrace <: LearningUpdate
     ρ_bar::Float64
