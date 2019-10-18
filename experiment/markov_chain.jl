@@ -93,7 +93,7 @@ function main_experiment(args::Vector{String})
     end
 
     truth = Resampling.DynamicProgramming(MarkovChain(chain_size), π, 0.9)
-    println(truth)
+    # println(truth)
 
     algo_dict, sample_dict, value_type_dict = build_algorithm_dict(parsed; max_is=max_is_dict[parsed["policy"]])
 
@@ -124,15 +124,11 @@ function main_experiment(args::Vector{String})
         end
 
         rng = MersenneTwister(parsed["seed"] + run)
-        # for vf in values(value_dict)
-        #     for v in vf
-        #         fill!(v.W, 0.0)
-        #     end
-        # end
+
         ER, WER = get_experience(buffer_size, μ, π; rng=rng, chain_size=chain_size)
         avg_is = Resampling.total(WER.sumtree)/buffer_size
 
-        ProgressMeter.@showprogress 0.1 "Iter: " for iter in 1:num_iterations
+        for iter in 1:num_iterations
             samp_er = sample(ER, batch_size; rng=rng)
             samp_wer = sample(WER, batch_size; rng=rng)
 

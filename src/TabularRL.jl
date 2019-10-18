@@ -11,7 +11,7 @@ module TabularRL
 
 using Lazy
 import Base.getindex, Base.setindex!
-using Resampling: GeneralValueFunction
+# using ..GeneralValueFunction
 
 export ValueFunction, Optimizer, update!, BatchTD, WISBatchTD, VTrace
 
