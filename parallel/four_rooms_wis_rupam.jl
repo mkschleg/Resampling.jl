@@ -1,6 +1,6 @@
 #!/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/gcc7.3/julia/1.1.0/bin/julia
-#SBATCH -o four_rooms_norm_is.out # Standard output
-#SBATCH -e four_rooms_norm_is.err # Standard error
+#SBATCH -o four_rooms_rupam_wis.out # Standard output
+#SBATCH -e four_rooms_rupam_wis.err # Standard error
 #SBATCH --mem-per-cpu=2000M # Memory request of 2 GB
 #SBATCH --time=4:00:00 # Running time of 6 hours
 #SBATCH --ntasks=32
@@ -17,10 +17,11 @@ const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
 # const alphas = collect(0.0:0.05:1.0)
-const alphas = [collect(0.0:0.01:0.1)..., 0.2, 0.3, 0.4, 0.5, 0.75, 1.0]
+const alphas = [0.0, 0.001, 0.01, 0.1, 1.0]
+const u_0 = [1, 5, 10, 25, 50]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 const gvfs = ["collide_down", "favored_down"]
-const batchsizes = [1, 8, 16]
+const batchsizes = [8, 16]
 const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
 # const train_gaps = [80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
@@ -32,8 +33,7 @@ function make_arguments(args::Dict)
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
-              "--run", args["run"],
-              "--alphas", string.(alphas)...]
+              "--run", args["run"]]
     return new_args
 end
 
@@ -68,8 +68,7 @@ function main()
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
 
-    alg_list = ["--normis", "--is", "--ir", "--bcir", "--wisbatch",
-                "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
+    alg_list = ["--wisrupam"]
 
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
@@ -79,6 +78,8 @@ function main()
                     "--numinter", string(numsteps),
                     "--eval_points", "1000",
                     "--eval_steps", "100",
+                    "--alphas", string.(alphas)...,
+                    "--init_u", string.(u_0)...,
                     "--compress"]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
@@ -102,9 +103,3 @@ end
 
 
 main()
-
-
-
-
-
-
