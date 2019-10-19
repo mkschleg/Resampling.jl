@@ -65,7 +65,7 @@ function main()
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
 
-    alg_list = ["--normis", "--ir", "--incnormis", "--wsnormis", "--wisbatch",
+    alg_list = ["--normis", "--ir", "--bcir", "--wisbatch",
                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
 
     static_args = [alg_list;
@@ -74,7 +74,7 @@ function main()
                     "--buffersize", string(buffersize),
                     "--seed", "0",
                     "--numinter", string(numsteps),
-                    "--eval_points", "100",
+                    "--eval_points", "1000",
                     "--eval_steps", "100",
                     "--compress"]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
