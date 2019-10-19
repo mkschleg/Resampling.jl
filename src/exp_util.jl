@@ -52,6 +52,9 @@ function algorithm_settings!(s::ArgParseSettings)
         "--init_u"
         nargs='+'
         arg_type = Float64
+        "--normalize_eta"
+        action= :store_true
+        help = "Set to normalize eta for WIS-TD(0)"
         "--sarsa"
         action = :store_true
         help = "Set to run sarsa"
@@ -161,7 +164,7 @@ function build_algorithm_dict(parsed; max_is=1.0, size_features = 0)
             throw("WISRupam must be done independently")
         end
         for u_0 in parsed["init_u"]
-            algo_dict["WISRupam_$(u_0)"] = Resampling.WISBatchTD_Rupam(u_0)
+            algo_dict["WISRupam_$(u_0)"] = Resampling.WISBatchTD_Rupam(u_0, parsed["normalize_eta"])
             sample_dict["WISRupam_$(u_0)"] = "ER"
             value_type_dict["WISRupam_$(u_0)"] = "State"
         end

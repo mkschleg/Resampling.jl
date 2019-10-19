@@ -125,7 +125,8 @@ mutable struct WISBatchTD_Rupam <: LearningUpdate
     v::IdDict
     prev_model::IdDict
     u_0::Float64
-    WISBatchTD_Rupam(u_0) = new(IdDict(), IdDict(), IdDict(), IdDict(), IdDict(), u_0)
+    normalize_eta::Bool
+    WISBatchTD_Rupam(u_0, normalize_eta=false) = new(IdDict(), IdDict(), IdDict(), IdDict(), IdDict(), u_0, normalize_eta)
 end
 
 _many_hot(type::Type, size, x::Array{Int, 1}) =
@@ -154,6 +155,9 @@ function update!(model::SparseLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t
         gnext = γ[i]
         rho = ρ[i]
         η = opt.eta
+        if lu.normalize_eta
+            η = opt.eta/(lu.u_0*length(s_t[1]))
+        end
 
         d_vec .= d_vec - η.*(ϕϕ).*d_vec + rho.*ϕϕ
         dtemp = copy(d_vec)
