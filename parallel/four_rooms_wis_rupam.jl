@@ -12,7 +12,7 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "four_rooms_cont_exp_var_red_study"
+const save_loc = "four_rooms_cont_exp_wis_rupam"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
@@ -20,13 +20,14 @@ const exp_func_name = :main_experiment
 const alphas = [0.0, 0.001, 0.01, 0.1, 1.0]
 const u_0 = [1, 5, 10, 25, 50]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
+# const policies = ["uniform"]
 const gvfs = ["collide_down", "favored_down"]
 const batchsizes = [8, 16]
 const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128, 160, 192, 224, 256]
 # const train_gaps = [80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
 const buffersize = 15000
-const numsteps = 1500
+const numsteps = 250000
 
 function make_arguments(args::Dict)
     new_args=["--policy", args["policy"],
