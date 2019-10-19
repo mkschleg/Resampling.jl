@@ -12,7 +12,7 @@ const exp_func_name = :main_experiment
 const alphas = collect(0.0:0.1:12)
 const policies = ["easy", "hard", "hardest"]
 
-function make_arguments(args::Dict{String, String})
+function make_arguments(args::Dict)
     new_args=["--policy", args["policy"]]
     return new_args
 end
