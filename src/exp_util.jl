@@ -46,6 +46,9 @@ function algorithm_settings!(s::ArgParseSettings)
         "--wisoptimal"
         action = :store_true
         help = "Set to run wis optimal experiments"
+        "--wisrupam"
+        action = :store_true
+        help = "Set to run wis rupam experiments"
         "--sarsa"
         action = :store_true
         help = "Set to run sarsa"
@@ -65,7 +68,7 @@ function algorithm_settings!(s::ArgParseSettings)
     return s
 end
 
-function build_algorithm_dict(parsed; max_is=1.0)
+function build_algorithm_dict(parsed; max_is=1.0, size_features = 0)
     algo_dict = Dict{String, Resampling.LearningUpdate}()
     sample_dict = Dict{String, String}()
     value_type_dict = Dict{String, String}()
@@ -120,6 +123,14 @@ function build_algorithm_dict(parsed; max_is=1.0)
         algo_dict["WISOptimal"] = WISBatchTD()
         sample_dict["WISOptimal"] = "Optimal"
         value_type_dict["WISOptimal"] = "State"
+    end
+
+    if parsed["wisrupam"]
+        for u_0 in parsed["init_u"]
+            algo_dict["WISRupam"] = Resampling.WISBatchTD_Rupam()
+            sample_dict["WISRupam"] = "ER"
+            value_type_dict["WISRupam"] = "State"
+        end
     end
 
     if parsed["vtrace"]

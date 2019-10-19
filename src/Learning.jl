@@ -118,13 +118,180 @@ function update!(model, opt, lu::WISBatchTD, ρ::Array{T,1}, s_t, s_tp1, r, γ, 
     update!(model, opt, lu.batch_td, ρ, s_t, s_tp1, r, γ, terminal; corr_term=T(length(ρ)*corr_term./wis_sum))
 end
 
-# mutable struct WISBatchTD_Rupam <: LearningUpdate
-#     η::Float64
-#     u_vec::Array{Float64, 1}
-#     α::Array{Float64, 1}
-#     prev_θ::IdDict
-#     WISBatchTD_Rupam(η, s) = new(η, zeros(s), zeros(s), IdDict())
+mutable struct WISBatchTD_Rupam <: LearningUpdate
+    z::IdDict
+    u::IdDict
+    d::IdDict
+    v::IdDict
+    prev_model::IdDict
+    u_0::Float64
+    WISBatchTD_Rupam(u_0) = new(IdDict(), IdDict(), IdDict(), IdDict(), IdDict(), u_0)
+end
+
+_many_hot(type::Type, size, x::Array{Int, 1}) =
+    begin; t = zeros(type, size); t[x] .= one(type); return t; end;
+
+_many_hot(size, x) = _many_hot(Float64, size, x)
+
+function update!(model::SparseLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+
+    # println(s_t)
+    z_vec = get!(lu.z, model, zeros(length(model.W)))
+    u_vec = get!(lu.u, model, zeros(length(model.W)))
+    d_vec = get!(lu.d, model, lu.u_0.*length(s_t[1]).*ones(length(model.W)))
+    v_vec = get!(lu.v, model, zeros(length(model.W)))
+    
+    # println("Step Update")
+    for i in 1:length(ρ)
+        ϕ = _many_hot(length(model.W), s_t[i])
+        # @show ϕ
+        ϕϕ = ϕ.*ϕ
+        ϕnext = _many_hot(length(model.W), s_tp1[i])
+        R = r[i]
+        g = 0
+        λ = 0
+        λnext = 0
+        gnext = γ[i]
+        rho = ρ[i]
+        η = opt.eta
+
+        d_vec .= d_vec - η.*(ϕϕ).*d_vec + rho.*ϕϕ
+        dtemp = copy(d_vec)
+        dtemp[dtemp.==0.0] .= 1
+        # println(minimum(dtemp), " ", maximum(dtemp))
+        alpha = 1 ./ dtemp
+        # println(minimum(alpha), " ", maximum(alpha))
+        αϕ = alpha.*ϕ
+        # println(minimum(αϕ), " ", maximum(αϕ))
+        v_vec .= rho.*ϕϕ
+        z_vec .= rho.*αϕ
+        prednext = model(s_tp1[i])
+
+        v_old = 0.0
+        if model ∈ keys(lu.prev_model)
+            v_old = lu.prev_model[model](s_t[i])
+        end
+        # @show v_old
+        # @show (rho, gnext, R, η)
+        # @show maximum(αϕ)
+        # @show maximum((R + gnext*prednext - v_old)*z_vec + rho*(v_old - model(s_t[i]))*αϕ)
+        
+        # @show (R + gnext*prednext - v_old)
+        # @show maximum(rho*(v_old - model(s_t[i]))*αϕ)
+        # @show size(model.W)
+        res_W = reshape(model.W, length(model.W))
+
+
+        res_W .= res_W + ((R + gnext*prednext - v_old)*z_vec + rho*(v_old - model(s_t[i])).*αϕ)
+        lu.prev_model[model] = deepcopy(model)
+    end
+
+    # @show sum(model.W)
+    
+end
+
+function update!(model::TabularLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+
+    # println(s_t)
+    z_vec = get!(lu.z, model, zeros(length(model.W)))
+    u_vec = get!(lu.u, model, zeros(length(model.W)))
+    d_vec = get!(lu.d, model, 0.1.*ones(length(model.W)))
+    v_vec = get!(lu.v, model, zeros(length(model.W)))
+    
+    # println("Step Update")
+    for i in 1:length(ρ)
+        ϕ = _many_hot(length(model.W), [s_t[i]])
+        # @show ϕ
+        ϕϕ = ϕ.*ϕ
+        ϕnext = _many_hot(length(model.W), [s_tp1[i]])
+        R = r[i]
+        g = 0
+        λ = 0
+        λnext = 0
+        gnext = γ[i]
+        rho = ρ[i]
+        η = opt.eta
+
+        d_vec .= d_vec - η.*(ϕϕ).*d_vec + rho*ϕϕ
+        dtemp = copy(d_vec)
+        dtemp[dtemp.==0.0] .= 1
+        alpha = 1 ./ dtemp
+        αϕ = alpha.*ϕ
+        # println(minimum(αϕ), " ", maximum(αϕ))
+        v_vec .= rho.*ϕϕ
+        z_vec .= rho.*αϕ
+        prednext = model(s_tp1[i])
+
+        v_old = 0.0
+        if model ∈ keys(lu.prev_model)
+            v_old = lu.prev_model[model](s_t[i])
+        end
+        # @show (rho, gnext, R, η)
+        # @show maximum(αϕ)
+        # @show maximum((R + gnext*prednext - v_old)*z_vec + rho*(v_old - model(s_t[i]))*αϕ)
+        
+        # @show (R + gnext*prednext - v_old)
+        # @show maximum(rho*(v_old - model(s_t[i]))*αϕ)
+        # @show size(model.W)
+        res_W = reshape(model.W, length(model.W))
+
+
+        model.W .= model.W + ((R + gnext*prednext - v_old)*z_vec + rho*(v_old - model(s_t[i]))*αϕ)
+        lu.prev_model[model] = deepcopy(model)
+    end
+
+    # @show sum(model.W)
+    
+end
+
+# function update!(model::SparseLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
+#     v_t = model.(s_t)
+#     v_tp1 = model.(s_tp1)
+#     dvdt = [deriv(model, s) for s in s_t]
+#     # δ = ρ.*tderror(v_t, r, γ, v_tp1)
+#     # Δ = δ.*dvdt.*1//length(ρ)
+
+
+
+#     u_1 = zeros(length(lu.u_vec))
+#     u_2 = zeros(length(lu.u_vec))
+#     for i in 1:length(ρ)
+#         fill!(u_1, 0.0)
+#         fill!(u_2, 0.0)
+
+#         v_old = zero(v_t)
+#         if model ∈ keys(lu.prev_model)
+#             v_old = lu.prev_model[model].(s_t)
+#         end
+        
+#         δ = ρ.*(tderror(v_old, r, γ, v_tp1) + v_old - v_t)
+#         Δ = -δ
+#         # u_1[s_t[i]] .+= 1 - opt.eta
+#         u_1[s_t[i]] .+= opt.eta
+#         u_2[s_t[i]] .+= ρ[i]
+
+#         lu.u_vec .= (1 .- u_1).*lu.u_vec .+ u_2
+#         # lu.u_vec .= (1 .- u_1.*(1//length(ρ))).*lu.u_vec .+ u_2.*(1//length(ρ))
+
+#         # println(minimum(lu.u_vec[s_t[i]]), " ", maximum(lu.u_vec[s_t[i]]))
+#         # println(minimum(1 ./ (lu.u_vec[s_t[i]])), " ", maximum(1 ./ (lu.u_vec[s_t[i]])))
+
+#         # @show v_t
+#         # @show r
+#         # for i in 1:length(ρ)
+#             # println(length(corr_term*Δ[i] ./ lu.u_vec[s_t[i]]))
+#         model.W[s_t[i]] .+= corr_term*Δ[i] ./ (lu.u_vec[s_t[i]] .+ 1e-8)
+#         # println(Δ[i])
+#         # println(minimum(Δ[i] ./ lu.u_vec[s_t[i]]), " ", maximum(Δ[i] ./ lu.u_vec[s_t[i]]))
+#         # end
+#         lu.prev_model[model] = deepcopy(model)
+#     end
+#     # lu.u_vec .= (u_1.*(1//length(ρ))).*lu.u_vec .+ u_2.*(1//length(ρ))
+
+#     println(minimum(model.W), " ", maximum(model.W))
+
 # end
+
 
 mutable struct VTrace <: LearningUpdate
     ρ_bar::Float64
