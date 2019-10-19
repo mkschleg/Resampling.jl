@@ -111,7 +111,7 @@ function main_experiment(args::Vector{String})
     value_iddict = IdDict()
 
     # Threads.@threads for run in 1:num_runs
-    for run in 1:num_runs
+    0.1 "Run: " for run in 1:num_runs
         value_dict = Dict{String, Array{Resampling.TabularLayer, 1}}()
         local_error_dict = Dict{String, Array{Float64}}()
         for key in keys(algo_dict)

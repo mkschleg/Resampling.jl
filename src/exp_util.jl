@@ -126,9 +126,11 @@ function build_algorithm_dict(parsed; max_is=1.0, size_features = 0)
     end
 
     if parsed["wisrupam"]
-        algo_dict["WISRupam"] = Resampling.WISBatchTD_Rupam(size_features)
-        sample_dict["WISRupam"] = "ER"
-        value_type_dict["WISRupam"] = "State"
+        for u_0 in parsed["init_u"]
+            algo_dict["WISRupam"] = Resampling.WISBatchTD_Rupam()
+            sample_dict["WISRupam"] = "ER"
+            value_type_dict["WISRupam"] = "State"
+        end
     end
 
     if parsed["vtrace"]
