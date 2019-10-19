@@ -136,16 +136,16 @@ _many_hot(size, x) = _many_hot(Float64, size, x)
 function update!(model::SparseLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t, s_tp1, r, γ, terminal; corr_term=1.0)
 
     # println(s_t)
-    z_vec = get!(lu.z, model, zeros(length(model.W)))
-    u_vec = get!(lu.u, model, zeros(length(model.W)))
-    d_vec = get!(lu.d, model, lu.u_0.*length(s_t[1]).*ones(length(model.W)))
-    v_vec = get!(lu.v, model, zeros(length(model.W)))
+    # z_vec = get!(lu.z, model, zeros(length(model.W)))
+    # u_vec = get!(lu.u, model, zeros(length(model.W)))
+    d_vec = get!(lu.d, model, lu.u_0.*length(s_t[1]).*ones(length(model.W)))::Array{Float64, 1}
+    # v_vec = get!(lu.v, model, zeros(length(model.W)))
     
     # println("Step Update")
     for i in 1:length(ρ)
         ϕ = _many_hot(length(model.W), s_t[i])
         # @show ϕ
-        ϕϕ = ϕ.*ϕ
+        ϕϕ = ϕ
         ϕnext = _many_hot(length(model.W), s_tp1[i])
         R = r[i]
         g = 0
@@ -161,29 +161,24 @@ function update!(model::SparseLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_t
         # println(minimum(dtemp), " ", maximum(dtemp))
         alpha = 1 ./ dtemp
         # println(minimum(alpha), " ", maximum(alpha))
-        αϕ = alpha.*ϕ
+        αϕ = alpha[s_t[i]].*ϕ[s_t[i]]
         # println(minimum(αϕ), " ", maximum(αϕ))
-        v_vec .= rho.*ϕϕ
-        z_vec .= rho.*αϕ
+        # v_vec .= rho.*ϕϕ
+        # z_vec .= rho.*αϕ
         prednext = model(s_tp1[i])
 
         v_old = 0.0
         if model ∈ keys(lu.prev_model)
             v_old = lu.prev_model[model](s_t[i])
         end
-        # @show v_old
-        # @show (rho, gnext, R, η)
-        # @show maximum(αϕ)
-        # @show maximum((R + gnext*prednext - v_old)*z_vec + rho*(v_old - model(s_t[i]))*αϕ)
+
+        model.W[1,s_t[i]] .= model.W[1,s_t[i]] .+ rho.*((R + gnext*prednext - v_old) + (v_old - model(s_t[i]))).*αϕ
         
-        # @show (R + gnext*prednext - v_old)
-        # @show maximum(rho*(v_old - model(s_t[i]))*αϕ)
-        # @show size(model.W)
-        res_W = reshape(model.W, length(model.W))
-
-
-        res_W .= res_W + ((R + gnext*prednext - v_old)*z_vec + rho*(v_old - model(s_t[i])).*αϕ)
-        lu.prev_model[model] = deepcopy(model)
+        if model ∈ keys(lu.prev_model)
+            lu.prev_model[model].W .= model.W
+        else
+            lu.prev_model[model] = deepcopy(model)
+        end
     end
 
     # @show sum(model.W)
