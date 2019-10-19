@@ -195,7 +195,7 @@ function update!(model::TabularLayer, opt::Descent, lu::WISBatchTD_Rupam, ρ, s_
     # println(s_t)
     z_vec = get!(lu.z, model, zeros(length(model.W)))
     u_vec = get!(lu.u, model, zeros(length(model.W)))
-    d_vec = get!(lu.d, model, 0.1.*ones(length(model.W)))
+    d_vec = get!(lu.d, model, lu.u_0.*ones(length(model.W)))
     v_vec = get!(lu.v, model, zeros(length(model.W)))
     
     # println("Step Update")

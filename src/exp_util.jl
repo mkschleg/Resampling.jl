@@ -49,6 +49,9 @@ function algorithm_settings!(s::ArgParseSettings)
         "--wisrupam"
         action = :store_true
         help = "Set to run wis rupam experiments"
+        "--init_u"
+        nargs='+'
+        arg_type = Float64
         "--sarsa"
         action = :store_true
         help = "Set to run sarsa"
@@ -64,6 +67,7 @@ function algorithm_settings!(s::ArgParseSettings)
         "--clip_value_perc"
         nargs='+'
         arg_type = Float64
+
     end
     return s
 end
@@ -125,13 +129,7 @@ function build_algorithm_dict(parsed; max_is=1.0, size_features = 0)
         value_type_dict["WISOptimal"] = "State"
     end
 
-    if parsed["wisrupam"]
-        for u_0 in parsed["init_u"]
-            algo_dict["WISRupam"] = Resampling.WISBatchTD_Rupam()
-            sample_dict["WISRupam"] = "ER"
-            value_type_dict["WISRupam"] = "State"
-        end
-    end
+
 
     if parsed["vtrace"]
         for clip_value in parsed["clip_value"]
@@ -157,6 +155,18 @@ function build_algorithm_dict(parsed; max_is=1.0, size_features = 0)
         sample_dict["ExpectedSarsa"] = "ER"
         value_type_dict["ExpectedSarsa"] = "StateAction"
     end
+
+    if parsed["wisrupam"]
+        if length(algo_dict) != 0
+            throw("WISRupam must be done independently")
+        end
+        for u_0 in parsed["init_u"]
+            algo_dict["WISRupam_$(u_0)"] = Resampling.WISBatchTD_Rupam(u_0)
+            sample_dict["WISRupam_$(u_0)"] = "ER"
+            value_type_dict["WISRupam_$(u_0)"] = "State"
+        end
+    end
+    
     return algo_dict, sample_dict, value_type_dict
 end
 
