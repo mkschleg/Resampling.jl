@@ -50,6 +50,9 @@ function main()
         "--saveloc"
         arg_type=String
         default=save_loc
+        "--jobloc"
+        arg_type=String
+        default=joinpath(save_loc, "jobs")
         "--numjobs"
         action=:store_true
     end
@@ -93,7 +96,7 @@ function main()
 
     create_experiment_dir(experiment)
     add_experiment(experiment; settings_dir="settings")
-    ret = job(experiment; num_workers=num_workers)
+    ret = job(experiment; num_workers=num_workers, job_file_dir=parsed["jobloc"])
     post_experiment(experiment, ret)
 end
 
