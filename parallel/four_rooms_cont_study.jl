@@ -25,9 +25,9 @@ const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128
 # const train_gaps = [80, 96, 114, 128, 160, 192, 224, 256]
 const warm_up = 1000
 const buffersize = 15000
-const numsteps = 250000
+const numsteps = 1500
 
-function make_arguments(args::Dict{String, String})
+function make_arguments(args::Dict)
     new_args=["--policy", args["policy"],
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
