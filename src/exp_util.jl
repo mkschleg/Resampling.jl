@@ -49,6 +49,9 @@ function algorithm_settings!(s::ArgParseSettings)
         "--wisrupam"
         action = :store_true
         help = "Set to run wis rupam experiments"
+        "--res_wisrupam"
+        action = :store_true
+        help = "Set to run wis rupam experiments"
         "--init_u"
         nargs='+'
         arg_type = Float64
@@ -167,6 +170,17 @@ function build_algorithm_dict(parsed; max_is=1.0, size_features = 0)
             algo_dict["WISRupam_$(u_0)"] = Resampling.WISBatchTD_Rupam(u_0, parsed["normalize_eta"])
             sample_dict["WISRupam_$(u_0)"] = "ER"
             value_type_dict["WISRupam_$(u_0)"] = "State"
+        end
+    end
+
+    if parsed["res_wisrupam"]
+        # if length(algo_dict) != 0
+        #     throw("WISRupam must be done independently")
+        # end
+        for u_0 in parsed["init_u"]
+            algo_dict["RES_WISRupam_$(u_0)"] = Resampling.WISBatchTD_Rupam(u_0, parsed["normalize_eta"])
+            sample_dict["RES_WISRupam_$(u_0)"] = "IR"
+            value_type_dict["RES_WISRupam_$(u_0)"] = "State"
         end
     end
     

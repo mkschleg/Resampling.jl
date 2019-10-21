@@ -72,7 +72,7 @@ function main()
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
 
-    alg_list = ["--wisrupam"]
+    alg_list = ["--wisrupam", "--res_wisrupam"]
 
     static_args = [alg_list;
                    ["--exp_loc", parsed["saveloc"],
