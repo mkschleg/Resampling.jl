@@ -33,7 +33,7 @@ function make_arguments(args::Dict)
               "--train_gap", args["train_gap"],
               "--batchsize", args["batchsize"],
               "--run", args["run"],
-              "--alphas", string.(alphas)...]
+              "--alphas", string.(alphas./parse(Int64, args["batchsize"]))...]
     return new_args
 end
 
@@ -68,7 +68,7 @@ function main()
     ])
     arg_list = ["policy", "gvf", "train_gap", "batchsize", "run"]
 
-    alg_list = ["--normis", "--is", "--ir", "--bcir", "--wisbatch",
+    alg_list = ["--normis", "--ir", "--bcir", "--wisbatch",
                 "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0"]
 
     static_args = [alg_list;
