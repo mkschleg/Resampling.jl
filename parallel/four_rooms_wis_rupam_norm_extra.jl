@@ -1,11 +1,11 @@
 #!/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx2/Compiler/gcc7.3/julia/1.1.0/bin/julia
 #SBATCH --mail-user=mkschleg@ualberta.ca
 #SBATCH --mail-type=ALL
-#SBATCH -o four_rooms_cont_wis_rupam.out # Standard output
-#SBATCH -e four_rooms_cont_wis_rupam.err # Standard error
+#SBATCH -o four_rooms_cont_wis_rupam_norm_eta.out # Standard output
+#SBATCH -e four_rooms_cont_wis_rupam_norm_eta.err # Standard error
 #SBATCH --mem-per-cpu=2000M # Memory request of 2 GB
 #SBATCH --time=24:00:00 # Running time of 12 hours
-#SBATCH --ntasks=64
+#SBATCH --ntasks=128
 #SBATCH --account=rrg-whitem
 
 using Pkg
@@ -14,13 +14,14 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "/home/mkschleg/scratch/four_rooms_cont_exp_wis_rupam"
+const save_loc = "/home/mkschleg/scratch/four_rooms_cont_exp_wis_rupam_normalize_eta_finer"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
-# const alphas = collect(0.0:0.05:1.0)
-const alphas = [0.0, 0.001, 0.01, 0.1, 1.0]
-const u_0 = [1, 5, 10, 25, 50]
+const alphas = 10 .^ (-2.0:0.25:1.0)
+# const alphas = [0.0, 0.001, 0.01, 0.1, 1.0]
+# const u_0 = [1, 5, 10, 25, 50]
+const u_0 = [10]
 const policies = ["random_state_variant", "random_state_weight_variant", "uniform"]
 # const policies = ["uniform"]
 const gvfs = ["collide_down", "favored_down"]
@@ -83,6 +84,7 @@ function main()
                     "--eval_steps", "100",
                     "--alphas", string.(alphas)...,
                     "--init_u", string.(u_0)...,
+                    "--normalize_eta",
                     "--compress"]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 

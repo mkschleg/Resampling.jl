@@ -1,3 +1,12 @@
+#!/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx2/Compiler/gcc7.3/julia/1.1.0/bin/julia
+#SBATCH --mail-user=mkschleg@ualberta.ca
+#SBATCH --mail-type=ALL
+#SBATCH -o four_rooms_cont_exp.out # Standard output
+#SBATCH -e four_rooms_cont_exp.err # Standard error
+#SBATCH --mem-per-cpu=2000M # Memory request of 2 GB
+#SBATCH --time=24:00:00 # Running time of 12 hours
+#SBATCH --ntasks=128
+#SBATCH --account=rrg-whitem
 
 using Pkg
 Pkg.activate(".")
@@ -5,7 +14,7 @@ Pkg.activate(".")
 using Reproduce
 using Logging
 
-const save_loc = "four_rooms_cont_exp_rmsprop_supl"
+const save_loc = "/home/mkschleg/scratch/four_rooms_cont_exp_rmsprop_supl"
 const exp_file = "experiment/four_rooms_cont.jl"
 const exp_module_name = :FourRoomsContExperiment
 const exp_func_name = :main_experiment
@@ -17,9 +26,9 @@ const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 80, 96, 114, 128
 # const train_gaps = [1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 48, 64, 128, 256]
 const warm_up = 1000
 const buffersize = 15000
-const numsteps = 250000
+const numsteps = 100000
 
-function make_arguments(args::Dict{String, String})
+function make_arguments(args::Dict)
     new_args=["--policy", args["policy"],
               "--gvf", args["gvf"],
               "--train_gap", args["train_gap"],
@@ -38,10 +47,13 @@ function main()
         default=1
         "--numruns"
         arg_type=Int64
-        default=10
+        default=25
         "--saveloc"
         arg_type=String
         default=save_loc
+        "--jobloc"
+        arg_type=String
+        default=joinpath(save_loc, "jobs")
         "--numjobs"
         action=:store_true
     end
@@ -89,7 +101,7 @@ function main()
 
     create_experiment_dir(experiment)
     add_experiment(experiment; settings_dir="settings")
-    ret = job(experiment; num_workers=num_workers)
+    ret = job(experiment; num_workers=num_workers, job_file_dir=parsed["jobloc"])
     post_experiment(experiment, ret)
 end
 
