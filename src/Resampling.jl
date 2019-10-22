@@ -33,6 +33,7 @@ include("CustomLayers.jl")
 
 export
     BatchTD,
+    IncTD,
     WISBatchTD,
     VTrace,
     IncNormIS,
