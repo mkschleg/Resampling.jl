@@ -3,4 +3,4 @@ theme: jekyll-theme-slate
 show_downloads: true
 
 github:
-  another_url: www.google.com
+  zip_url: https://github.com/mkschleg/Resampling.jl/archive/master.zip
