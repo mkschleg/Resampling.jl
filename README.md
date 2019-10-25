@@ -4,11 +4,11 @@ A repository containing the julia code used for creating the majority of results
 
 ## Authors
 
-- (mkschleg.github.io)[Matthew Schlegel]
+- [Matthew Schlegel](mkschleg.github.io)
 - Wes Chung
 - Jian Qian
 - Daniel Graves
-- (http://webdocs.cs.ualberta.ca/~whitem/index.html)[Martha White]
+- [Martha White](http://webdocs.cs.ualberta.ca/~whitem/index.html)
 
 ## Acknowledgments
 
