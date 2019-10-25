@@ -59,11 +59,11 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
     return as
 end
 
-function rmse(model::Resampling.TabularLayer{Array{Float64, 1}}, truth, args...)
+function mave(model::Resampling.TabularLayer{Array{Float64, 1}}, truth, args...)
     return mean(abs.(model.W .- truth))
 end
 
-function rmse(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, target_policy)
+function mave(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, target_policy)
     return mean(abs.(model.W'*target_policy  .- truth))
 end
 
@@ -93,7 +93,7 @@ function main_experiment(args::Vector{String})
     end
 
     truth = Resampling.DynamicProgramming(MarkovChain(chain_size), π, 0.9)
-    println(truth)
+    # println(truth)
 
     algo_dict, sample_dict, value_type_dict = build_algorithm_dict(parsed; max_is=max_is_dict[parsed["policy"]])
 
@@ -124,15 +124,11 @@ function main_experiment(args::Vector{String})
         end
 
         rng = MersenneTwister(parsed["seed"] + run)
-        # for vf in values(value_dict)
-        #     for v in vf
-        #         fill!(v.W, 0.0)
-        #     end
-        # end
+
         ER, WER = get_experience(buffer_size, μ, π; rng=rng, chain_size=chain_size)
         avg_is = Resampling.total(WER.sumtree)/buffer_size
 
-        ProgressMeter.@showprogress 0.1 "Iter: " for iter in 1:num_iterations
+        for iter in 1:num_iterations
             samp_er = sample(ER, batch_size; rng=rng)
             samp_wer = sample(WER, batch_size; rng=rng)
 
@@ -160,7 +156,7 @@ function main_experiment(args::Vector{String})
                                   samp_opt[:r], samp_opt[:γ_tp1], samp_opt[:terminal])
                         update!(value_dict[key][α_idx], opt, algo_dict[key], arg_opt...;)
                     end
-                    local_error_dict[key][α_idx, iter] = rmse(value_dict[key][α_idx], truth, π)
+                    local_error_dict[key][α_idx, iter] = mave(value_dict[key][α_idx], truth, π)
                 end
             end
         end

@@ -1,4 +1,3 @@
-
 using Pkg
 Pkg.activate(".")
 
@@ -9,7 +8,11 @@ const save_loc = "four_rooms_sweep"
 const exp_file = "experiment/four_rooms.jl"
 const exp_module_name = :FourRoomsExperiment
 const exp_func_name = :main_experiment
-const alphas = [[0.0, 0.001, 0.01]; collect(0.025:0.025:0.2); collect(0.25:0.05:1.0); collect(1.25:0.25:2.0)]
+# const alphas = [[0.0, 0.001, 0.01]; collect(0.025:0.025:0.2); collect(0.25:0.05:1.0); collect(1.25:0.25:2.0)]
+# const alphas = [0.0, 0.001, 0.01, 0.1, 1.0]
+const alphas = [[0.0]; 10 .^ (-3.0:0.25:0.0)]
+const u_0 = [1]
+# const u_0 = [1.0/64.0, 0.1, 1, 10, 50, 100]
 const policies = ["random_state_variant", "uniform"]
 const gvfs = ["down", "favored_down"]
 const batchsizes = [16]
@@ -95,9 +98,6 @@ end
 
 
 main()
-
-
-
 
 
 

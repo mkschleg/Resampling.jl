@@ -1,8 +1,17 @@
+"""
+    TabularRL
+
+This module was ported from an old version of this code base. This is only used for the variance experiments in the markov chaing `experiment/markov_chain_var.jl` and `parallel/markov_chain_variance.jl
+
+"""
+
+
+
 module TabularRL
 
 using Lazy
 import Base.getindex, Base.setindex!
-import IWER.GeneralValueFunction
+# using ..GeneralValueFunction
 
 export ValueFunction, Optimizer, update!, BatchTD, WISBatchTD, VTrace
 

@@ -66,11 +66,11 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
     return as
 end
 
-function rmse(model::Resampling.TabularLayer{Array{Float64, 1}}, truth, args...)
+function mave(model::Resampling.TabularLayer{Array{Float64, 1}}, truth, args...)
     return mean(abs.(model.W .- truth))
 end
 
-function rmse(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, target_policy)
+function mave(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, target_policy)
     return mean(abs.(model.W'*target_policy  .- truth))
 end
 
@@ -118,7 +118,7 @@ function main_experiment(args::Vector{String})
         for (α_idx, α) in enumerate(α_arr)
             opt = Descent(α)
             update!(value_arr[α_idx], opt, lu, arg_wer...;)
-            local_error[α_idx, iter] = rmse(value_arr[α_idx], truth, π)
+            local_error[α_idx, iter] = mave(value_arr[α_idx], truth, π)
         end
     end
 

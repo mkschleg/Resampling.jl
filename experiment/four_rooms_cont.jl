@@ -16,13 +16,8 @@ import ProgressMeter
 import StatsBase
 using JuliaRL.FeatureCreators
 
-function mase(preds, truth, args...)
+function mare(preds, truth, args...)
     return mean(abs.(preds .- truth))
-end
-
-function mase(model::Resampling.TabularLayer{Array{Float64, 3}}, truth, target_policy_matrix)
-    # println(size(model.W))
-    return @inbounds mean(abs.(sum(target_policy_matrix .* model.W; dims=1)[1,:,:]  .- truth))
 end
 
 function get_target_policy_matrix(env::FourRooms, μ::Resampling.AbstractPolicy)
@@ -157,8 +152,8 @@ function main_experiment(args::Vector{String})
 
     eval_step = 1
 
-    # ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
-    for step in 1:num_interactions
+    ProgressMeter.@showprogress 0.1 "Step: " for step in 1:num_interactions
+    # for step in 1:num_interactions
 
         # Get experience from environment.
         _, s_tp1, r, terminal = step!(env, action; rng=rng)
@@ -169,8 +164,7 @@ function main_experiment(args::Vector{String})
             predict!(agent, eval_states, predict_dict)
             for key in keys(agent.algo_dict)
                 for α_idx in eachindex(agent.α_arr)
-                    error_dict[key][α_idx, eval_step] = Float32(mase(predict_dict[key][α_idx], eval_rets))
-                    # error_dict[key][α_idx, step] = Float32(mase(agent.value_dict[key][α_idx].([create_features(agent.tilecoder, s) for s in eval_states]), eval_rets))
+                    error_dict[key][α_idx, eval_step] = Float32(mare(predict_dict[key][α_idx], eval_rets))
                 end
             end
             eval_step += 1

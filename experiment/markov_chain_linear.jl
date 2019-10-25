@@ -59,11 +59,11 @@ function exp_settings(as::ArgParseSettings = ArgParseSettings(exc_handler=Reprod
     return as
 end
 
-function rmse(model::Resampling.TabularLayer{Array{Float64, 1}}, truth, args...)
+function mave(model::Resampling.TabularLayer{Array{Float64, 1}}, truth, args...)
     return mean(abs.(model.W .- truth))
 end
 
-function rmse(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, target_policy)
+function mave(model::Resampling.TabularLayer{Array{Float64, 2}}, truth, target_policy)
     return mean(abs.(model.W'*target_policy  .- truth))
 end
 
@@ -110,7 +110,7 @@ function main_experiment(args::Vector{String})
     local_err_iddict = IdDict()
     value_iddict = IdDict()
 
-    Threads.@threads for run in 1:num_runs
+    for run in 1:num_runs
         value_dict = Dict{String, Array{Resampling.TabularLayer, 1}}()
         local_error_dict = Dict{String, Array{Float64}}()
         for key in keys(algo_dict)
@@ -159,7 +159,7 @@ function main_experiment(args::Vector{String})
                                   samp_opt[:r], samp_opt[:γ_tp1], samp_opt[:terminal])
                         update!(value_dict[key][α_idx], opt, algo_dict[key], arg_opt...;)
                     end
-                    local_error_dict[key][α_idx, iter] = rmse(value_dict[key][α_idx], truth, π)
+                    local_error_dict[key][α_idx, iter] = mave(value_dict[key][α_idx], truth, π)
                 end
             end
         end

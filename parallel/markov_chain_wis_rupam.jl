@@ -9,7 +9,9 @@ const save_loc = "markov_chain_results"
 const exp_file = "experiment/markov_chain.jl"
 const exp_module_name = :MarkovChainExperiment
 const exp_func_name = :main_experiment
-const alphas = collect(0.0:0.1:12)
+# const alphas = collect(0.0:0.1:12)
+const u_0 = 10 .^ (0:0.25:3)
+const alphas = [0.0, 0.001, 0.1, 1.0]
 const policies = ["easy", "hard", "hardest"]
 
 function make_arguments(args::Dict)
@@ -41,12 +43,8 @@ function main()
         "policy"=>policies
     ])
     arg_list = ["policy"]
-    alg_list = ["--is",
-                "--ir", "--bcir",
-                "--vtrace", "--clip_value_perc", "0.5", "0.9", "1.0", "--clip_value", "1.0",
-                "--sarsa", "--expectedsarsa",
-                "--wisbatch", "--wisbuffer", "--wisoptimal"]
-    static_args = [alg_list; ["--exp_loc", parsed["saveloc"], "--numruns", string(parsed["numruns"]), "--numiter", "1000", "--alphas"] ;string.(alphas)]
+    alg_list = ["--wisrupam", "--normalize_eta"]
+    static_args = [alg_list; ["--exp_loc", parsed["saveloc"], "--numruns", string(parsed["numruns"]), "--numiter", "1000", "--alphas", string.(alphas)..., "--init_u", string.(u_0)...]]
     args_iterator = ArgIterator(arg_dict, static_args; arg_list=arg_list, make_args=make_arguments)
 
     if parsed["numjobs"]
@@ -70,9 +68,3 @@ end
 
 
 main()
-
-
-
-
-
-

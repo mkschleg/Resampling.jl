@@ -15,6 +15,9 @@ export algorithm_settings!, build_algorithm_dict
 
 function algorithm_settings!(s::ArgParseSettings)
     @add_arg_table s begin
+        "--inc"
+        action = :store_true
+        help = "set to use incremental td"
         # Algorithms
         "--is"
         action = :store_true
@@ -36,7 +39,7 @@ function algorithm_settings!(s::ArgParseSettings)
         help = "Set to include ir"
         "--bcir"
         action = :store_true
-        help = "Set to include buffer corrected ir"
+        help = "Set to include incremental buffer corrected ir"
         "--wisbatch"
         action = :store_true
         help = "Set to include wisbatch in experiments"
@@ -46,6 +49,18 @@ function algorithm_settings!(s::ArgParseSettings)
         "--wisoptimal"
         action = :store_true
         help = "Set to run wis optimal experiments"
+        "--wisrupam"
+        action = :store_true
+        help = "Set to run wis rupam experiments"
+        "--res_wisrupam"
+        action = :store_true
+        help = "Set to run wis rupam experiments"
+        "--init_u"
+        nargs='+'
+        arg_type = Float64
+        "--normalize_eta"
+        action= :store_true
+        help = "Set to normalize eta for WIS-TD(0)"
         "--sarsa"
         action = :store_true
         help = "Set to run sarsa"
@@ -61,32 +76,36 @@ function algorithm_settings!(s::ArgParseSettings)
         "--clip_value_perc"
         nargs='+'
         arg_type = Float64
+        
+        
     end
     return s
 end
 
-function build_algorithm_dict(parsed; max_is=1.0)
+function build_algorithm_dict(parsed; max_is=1.0, size_features = 0)
     algo_dict = Dict{String, Resampling.LearningUpdate}()
     sample_dict = Dict{String, String}()
     value_type_dict = Dict{String, String}()
 
+    tdupdate = parsed["inc"] ? IncTD() : BatchTD()
+
     if parsed["is"]
-        algo_dict["IS"] = BatchTD()
+        algo_dict["IS"] = tdupdate
         sample_dict["IS"] = "ER"
         value_type_dict["IS"] = "State"
     end
     if parsed["normis"]
-        algo_dict["NormIS"] = BatchTD()
+        algo_dict["NormIS"] = tdupdate
         sample_dict["NormIS"] = "ER"
         value_type_dict["NormIS"] = "State"
     end
     if parsed["incnormis"]
-        algo_dict["IncNormIS"] = IncNormIS()
+        algo_dict["IncNormIS"] = IncNormIS(tdupdate)
         sample_dict["IncNormIS"] = "ER"
         value_type_dict["IncNormIS"] = "State"
     end
     if parsed["wsnormis"]
-        algo_dict["WSNormIS"] = WSNormIS()
+        algo_dict["WSNormIS"] = WSNormIS(0.9f0, tdupdate)
         sample_dict["WSNormIS"] = "ER"
         value_type_dict["WSNormIS"] = "State"
     end
@@ -96,40 +115,43 @@ function build_algorithm_dict(parsed; max_is=1.0)
         value_type_dict["WSAvgNormIS"] = "State"
     end
     if parsed["ir"]
-        algo_dict["IR"] = BatchTD()
+        algo_dict["IR"] = tdupdate
         sample_dict["IR"] = "IR"
         value_type_dict["IR"] = "State"
     end
     if parsed["bcir"]
-        algo_dict["BCIR"] = BatchTD()
+        algo_dict["BCIR"] = tdupdate
         sample_dict["BCIR"] = "IR"
         value_type_dict["BCIR"] = "State"
     end
+
     if parsed["wisbatch"]
-        algo_dict["WISBatch"] = WISBatchTD()
+        algo_dict["WISBatch"] = WISBatchTD(tdupdate)
         sample_dict["WISBatch"] = "ER"
         value_type_dict["WISBatch"] = "State"
     end
     if parsed["wisbuffer"]
-        algo_dict["WISBuffer"] = BatchTD()
+        algo_dict["WISBuffer"] = tdupdate
         sample_dict["WISBuffer"] = "ER"
         value_type_dict["WISBuffer"] = "State"
     end
 
     if parsed["wisoptimal"]
-        algo_dict["WISOptimal"] = WISBatchTD()
+        algo_dict["WISOptimal"] = WISBatchTD(tdupdate)
         sample_dict["WISOptimal"] = "Optimal"
         value_type_dict["WISOptimal"] = "State"
     end
 
+
+
     if parsed["vtrace"]
         for clip_value in parsed["clip_value"]
-            algo_dict["VTrace_$(clip_value)"] = VTrace(clip_value)
+            algo_dict["VTrace_$(clip_value)"] = VTrace(clip_value, tdupdate)
             sample_dict["VTrace_$(clip_value)"] = "ER"
             value_type_dict["VTrace_$(clip_value)"] = "State"
         end
         for clip_value_perc in parsed["clip_value_perc"]
-            algo_dict["VTrace_$(clip_value_perc*max_is)"] = VTrace(clip_value_perc*max_is)
+            algo_dict["VTrace_$(clip_value_perc*max_is)"] = VTrace(clip_value_perc*max_is, tdupdate)
             sample_dict["VTrace_$(clip_value_perc*max_is)"] = "ER"
             value_type_dict["VTrace_$(clip_value_perc*max_is)"] = "State"
         end
@@ -146,6 +168,29 @@ function build_algorithm_dict(parsed; max_is=1.0)
         sample_dict["ExpectedSarsa"] = "ER"
         value_type_dict["ExpectedSarsa"] = "StateAction"
     end
+
+    if parsed["wisrupam"]
+        if length(algo_dict) != 0
+            throw("WISRupam must be done independently")
+        end
+        for u_0 in parsed["init_u"]
+            algo_dict["WISRupam_$(u_0)"] = Resampling.WISBatchTD_Rupam(u_0, parsed["normalize_eta"])
+            sample_dict["WISRupam_$(u_0)"] = "ER"
+            value_type_dict["WISRupam_$(u_0)"] = "State"
+        end
+    end
+
+    if parsed["res_wisrupam"]
+        # if length(algo_dict) != 0
+        #     throw("WISRupam must be done independently")
+        # end
+        for u_0 in parsed["init_u"]
+            algo_dict["RES_WISRupam_$(u_0)"] = Resampling.WISBatchTD_Rupam(u_0, parsed["normalize_eta"])
+            sample_dict["RES_WISRupam_$(u_0)"] = "IR"
+            value_type_dict["RES_WISRupam_$(u_0)"] = "State"
+        end
+    end
+    
     return algo_dict, sample_dict, value_type_dict
 end
 
