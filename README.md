@@ -13,7 +13,6 @@ These resources were used at the NeurIPS conference, occuring in December of 201
 
 - [Poster](https://github.com/mkschleg/Resampling.jl/raw/gh-pages/resources/poster.pdf)
 - [Slides](https://github.com/mkschleg/Resampling.jl/blob/gh-pages/resources/IR_neurips2019.pdf)
-- [Video](https://github.com/mkschleg/Resampling.jl/raw/gh-pages/resources/IR_neurips2019.pdf)
 
 ## Authors
 
