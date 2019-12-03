@@ -28,4 +28,5 @@ We would like to thank Huawei for their support, and especially for allowing a p
 
 ## Errata
 
+- "samplie importance-resampling" -> "sampling importance-resampling"
 - In the paper currently there is a mistake in the continuous four rooms figures. The x-axis should have values `[3.0, 3.5, 4.0, 4.5, 5.0]`. This mistake will be fixed for the final camera ready.
