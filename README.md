@@ -13,7 +13,6 @@ These resources were used at the NeurIPS conference, occuring in December of 201
 
 - [Poster](https://github.com/mkschleg/Resampling.jl/raw/gh-pages/resources/poster.pdf)
 - [Slides](https://github.com/mkschleg/Resampling.jl/blob/gh-pages/resources/IR_neurips2019.pdf)
-- [Video](https://github.com/mkschleg/Resampling.jl/raw/gh-pages/resources/IR_neurips2019.pdf)
 
 ## Authors
 
@@ -27,3 +26,7 @@ These resources were used at the NeurIPS conference, occuring in December of 201
 
 We would like to thank Huawei for their support, and especially for allowing a portion of this work to be completed during Matthew's internship in the summer of 2018. We also would like to acknowledge University of Alberta, Alberta Machine Intelligence Institute, and NSERC for their continued funding and support.
 
+## Errata
+
+- "samplie importance-resampling" -> "sampling importance-resampling"
+- In the paper currently there is a mistake in the continuous four rooms figures. The x-axis should have values `[3.0, 3.5, 4.0, 4.5, 5.0]`. This mistake will be fixed for the final camera ready.
